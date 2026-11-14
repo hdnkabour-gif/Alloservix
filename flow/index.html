@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0d2e38">
+<meta name="description" content="ALLOSERVIX Parcours — trouvez une solution technique à votre rythme, en quelques gestes ou en détail."><meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/flow/flow.css"><script src="/flow/flow.js" defer></script>
+<title>ALLOSERVIX — À votre rythme</title>
+</head>
+<body>
+<a class="skip" href="#scene" data-t="skip">Aller au contenu</a>
+<div class="layout">
+<header class="topbar">
+ <a class="logo" href="#home" id="brand" aria-label="ALLOSERVIX — accueil"><span class="logo-symbol" aria-hidden="true">A<span>✳</span></span><span class="logo-text"><strong>ALLOSERVIX</strong><small>SOLUTIONS · CASABLANCA</small></span></a>
+ <div class="top-actions"><span class="private-note" data-t="privacyShort">Sans compte · rien envoyé</span><button type="button" class="header-icon" id="lang" aria-label="Changer la langue">عربي / FR</button><button type="button" class="header-icon" id="help" aria-label="Aide">?</button></div>
+</header>
+<div class="workspace">
+ <nav class="side-nav" aria-label="Navigation principale">
+  <div class="nav-label" data-t="navTitle">VOTRE ESPACE</div>
+  <button type="button" data-page="home" class="nav-item active" aria-current="page"><span class="nav-glyph" aria-hidden="true">⌂</span><span data-t="navHome">Accueil</span></button>
+  <button type="button" data-page="quick" class="nav-item"><span class="nav-glyph" aria-hidden="true">⌕</span><span data-t="navQuick">Réponse rapide</span></button>
+  <button type="button" data-page="guide" class="nav-item"><span class="nav-glyph" aria-hidden="true">◎</span><span data-t="navGuide">Accompagnez-moi</span></button>
+  <button type="button" data-page="discover" class="nav-item"><span class="nav-glyph" aria-hidden="true">▦</span><span data-t="navDiscover">Tout découvrir</span></button>
+  <button type="button" data-page="passport" class="nav-item"><span class="nav-glyph" aria-hidden="true">▤</span><span data-t="navPassport">Mon résumé</span></button>
+  <div class="side-bottom"><span class="signal-dot" aria-hidden="true"></span><span data-t="sideBottom">Le bon chemin, à votre rythme.</span><a href="/mentions.html" data-t="privacy">Confidentialité</a></div>
+ </nav>
+ <main id="scene" class="scene" tabindex="-1">
+  <div class="scene-inner">
+   <div id="campaign-note" class="campaign-note" hidden></div>
+   <section class="view active" id="view-home" aria-labelledby="home-title">
+    <div class="intro-eyebrow" data-t="homeKicker">BIENVENUE CHEZ ALLOSERVIX <span class="dot">●</span> MAROC</div>
+    <div class="welcome-grid"><div><h1 id="home-title" data-t="homeTitle">La technologie, sans les complications.</h1><p class="lede" data-t="homeText">Un besoin, une question ou une idée ? Choisissez comment vous préférez avancer. Pas de longue page à parcourir.</p></div><div class="visual-orbit" aria-hidden="true"><span class="orbit-one">?</span><span class="orbit-two">✓</span><span class="orbit-three">✦</span><span class="orbit-center">A<span>✳</span></span></div></div>
+    <div class="section-top"><span data-t="chooseWay">COMMENT SOUHAITEZ-VOUS AVANCER ?</span><span class="section-dash" aria-hidden="true"></span></div>
+    <div class="way-grid">
+     <button type="button" class="way-card express" data-go="quick"><span class="way-icon" aria-hidden="true">⚡</span><span class="way-index">01 / EXPRESS</span><strong data-t="wayQuick">Je veux une réponse</strong><small data-t="wayQuickDesc">Je pose ma question, je vois les solutions possibles.</small><span class="way-arrow" aria-hidden="true">↗</span></button>
+     <button type="button" class="way-card assisted" data-go="guide"><span class="way-icon" aria-hidden="true">◉</span><span class="way-index">02 / GUIDÉ</span><strong data-t="wayGuide">Montrez-moi simplement</strong><small data-t="wayGuideDesc">De grandes images, de petits choix. Je peux écouter.</small><span class="way-arrow" aria-hidden="true">↗</span></button>
+     <button type="button" class="way-card curious" data-go="discover"><span class="way-icon" aria-hidden="true">▤</span><span class="way-index">03 / DÉCOUVERTE</span><strong data-t="wayDiscover">Je veux comprendre</strong><small data-t="wayDiscoverDesc">Des services, des explications et des détails.</small><span class="way-arrow" aria-hidden="true">↗</span></button>
+    </div>
+    <div class="bottom-note"><span class="bottom-icon">✳</span><span data-t="switchAnytime">Vous pouvez changer de chemin à tout moment, sans recommencer.</span></div>
+   </section>
+   <section class="view" id="view-quick" aria-labelledby="quick-title" hidden>
+    <div class="view-eyebrow">01 / EXPRESS <span class="pill" data-t="fast">SIMPLE & RAPIDE</span></div>
+    <h1 id="quick-title" data-t="quickTitle">Dites-nous ce qui ne va pas.</h1><p class="lede narrow" data-t="quickText">Même avec vos mots. Exemple : « wifi ma kaywselch lfoq » ou « gestion stock ».</p>
+    <form id="quick-form" class="query-box"><label for="quick-input" class="sr-only" data-t="quickLabel">Votre demande</label><textarea id="quick-input" rows="2" maxlength="400" placeholder="Ex : بغيت برنامج للمخزون..."></textarea><div class="query-actions"><button type="button" class="text-action" id="listen-quick"><span aria-hidden="true">🔊</span> <span data-t="listen">Écouter la consigne</span></button><button class="main-button" type="submit"><span data-t="searchCta">Trouver une piste</span><span aria-hidden="true">→</span></button></div></form>
+    <p class="tiny-label" data-t="tryExamples">OU ESSAYEZ UN EXEMPLE</p><div class="examples" id="examples"></div>
+    <div id="quick-result" hidden class="results"><div class="result-top"><strong data-t="resultTitle">Pistes à explorer</strong><small data-t="resultWarning">À valider par notre équipe</small></div><div id="quick-cards" class="result-grid"></div><p id="quick-empty" class="empty" hidden data-t="noMatch">Pas de correspondance claire. On peut tout de même étudier votre demande.</p><div class="result-footer"><button type="button" id="quick-passport" class="outline-button" data-t="addSummary">Préparer mon résumé</button></div></div>
+   </section>
+   <section class="view" id="view-guide" aria-labelledby="guide-title" hidden>
+    <div class="view-eyebrow">02 / GUIDÉ <span class="pill" data-t="noTech">PAS BESOIN DE CONNAÎTRE LA TECH</span></div>
+    <div class="guide-top"><div><h1 id="guide-title" data-t="guideTitle">On avance ensemble.</h1><p class="lede narrow" id="guide-description" data-t="guideIntro">Un choix à la fois. Pas besoin de taper.</p></div><button type="button" id="speak" class="speak-button" aria-label="Lire cette étape"><span aria-hidden="true">🔊</span><span data-t="listen">Écouter la consigne</span></button></div>
+    <div class="guide-progress" aria-label="Progression"><span id="guide-step-label">1 / 3</span><div class="guide-progress-track"><div id="guide-progress-bar"></div></div><button type="button" id="guide-back" class="back" disabled data-t="back">Retour</button></div>
+    <div id="guide-content" class="guide-content" aria-live="polite"></div>
+    <div class="guide-actions"><button type="button" id="guide-next" class="main-button" disabled><span data-t="continue">Continuer</span><span aria-hidden="true">→</span></button></div>
+    <p class="gentle-note" data-t="audioNotice">La lecture audio utilise les voix disponibles sur votre appareil. Aucune voix n'est enregistrée.</p>
+   </section>
+   <section class="view" id="view-discover" aria-labelledby="discover-title" hidden>
+    <div class="view-eyebrow">03 / EXPLORER <span class="pill" data-t="moreDepth">POUR LES CURIEUX</span></div>
+    <h1 id="discover-title" data-t="discoverTitle">Explorez seulement ce qui vous intéresse.</h1><p class="lede narrow" data-t="discoverText">Choisissez un domaine, lisez une fiche, revenez. Sans dérouler un long catalogue.</p>
+    <label class="sr-only" for="service-search" data-t="searchService">Rechercher une prestation</label><div class="search-row"><span aria-hidden="true">⌕</span><input id="service-search" type="search" maxlength="120" placeholder="Caméras, Azure, logiciel, wifi..." autocomplete="off"><button type="button" id="clear-search" class="clear-search" aria-label="Effacer">×</button></div>
+    <div id="categories" class="category-row" role="group" aria-label="Domaines"></div><p id="catalog-status" class="catalog-status" role="status" aria-live="polite"></p><div id="catalog-results" class="catalog-results"></div>
+   </section>
+   <section class="view" id="view-passport" aria-labelledby="passport-title" hidden>
+    <div class="view-eyebrow">04 / <span data-t="passportEyebrow">MON CARNET</span></div><h1 id="passport-title" data-t="passportTitle">Votre idée, bien expliquée.</h1><p class="lede narrow" data-t="passportIntro">Un résumé pour vous, à conserver ou à partager vous-même. Rien n'est envoyé automatiquement.</p>
+    <div class="passport-card"><div class="passport-head"><strong>ALLOSERVIX<span>✳</span></strong><span data-t="draft">BROUILLON PRIVÉ</span></div><div class="passport-body"><span class="tiny-label" data-t="myRequest">MON BESOIN</span><p id="passport-need">—</p><span class="tiny-label" data-t="myContext">MON CONTEXTE</span><p id="passport-context">—</p><span class="tiny-label" data-t="possibleSolutions">SERVICES À ÉTUDIER</span><ul id="passport-services"></ul><span class="tiny-label" data-t="stillCheck">À CONFIRMER AVEC L'ÉQUIPE</span><p data-t="passportDisclaimer">Étude indicative, sans prix ni promesse de résultat. Toute prestation doit être validée.</p></div></div>
+    <div class="passport-actions"><button id="copy-passport" class="main-button" type="button" data-t="copy">Copier</button><button id="print-passport" class="outline-button" type="button" data-t="print">Imprimer / PDF</button><button id="save-passport" class="outline-button" type="button" data-t="save">Enregistrer .txt</button><a id="whatsapp-passport" class="outline-button" href="#" hidden target="_blank" rel="noopener noreferrer">WhatsApp ↗</a></div>
+    <div class="bottom-note"><span class="bottom-icon">✓</span><span data-t="privatePassport">Votre demande reste sur cet appareil tant que vous ne choisissez pas de la partager.</span></div>
+   </section>
+  </div>
+ </main>
+ <aside class="companion"><div class="companion-tag">ALLOSERVIX / COMPANION <span class="online-dot" aria-hidden="true"></span></div><div class="companion-visual"><span class="comp-orbit orbit-a"></span><span class="comp-orbit orbit-b"></span><span class="comp-core">✳</span></div><div class="companion-copy"><h2 data-t="compTitle">Une solution à votre mesure.</h2><p data-t="compText">Vous décidez du rythme. On vous guide vers une piste, sans jargon ni formulaire interminable.</p></div><div class="companion-panel"><div class="companion-panel-top"><span data-t="currentStep">VOTRE PARCOURS</span><span class="mini-dot"></span></div><strong id="companion-status" data-t="statusWelcome">Choisissez votre chemin</strong><small id="companion-detail" data-t="statusDetail">Chaque étape reste courte et modifiable.</small></div><div class="companion-footer" data-t="casa">CASABLANCA · MAROC · 2026</div></aside>
+</div>
+<nav class="bottom-nav" aria-label="Navigation mobile"><button type="button" data-page="home" class="active" aria-current="page"><span aria-hidden="true">⌂</span><small data-t="shortHome">Début</small></button><button type="button" data-page="quick"><span aria-hidden="true">⌕</span><small data-t="shortQuick">Rapide</small></button><button type="button" data-page="guide"><span aria-hidden="true">◎</span><small data-t="shortGuide">Guidé</small></button><button type="button" data-page="discover"><span aria-hidden="true">▦</span><small data-t="shortDiscover">Explorer</small></button><button type="button" data-page="passport"><span aria-hidden="true">▤</span><small data-t="shortPassport">Résumé</small></button></nav>
+</div>
+<div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+<dialog id="details-dialog" aria-labelledby="detail-name"><div class="dialog-body"><div class="dialog-top"><span class="tiny-label" data-t="serviceSheet">FICHE DE SERVICE</span><button id="detail-close" class="close" type="button" aria-label="Fermer">×</button></div><h2 id="detail-name"></h2><p id="detail-description"></p><div id="detail-sections"></div><div class="modal-footer"><p data-t="studyOnly">À étudier et confirmer avec l'équipe, sans engagement.</p><button id="detail-choose" type="button" class="main-button" data-t="chooseService">Garder ce service</button></div></div></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-body"><div class="dialog-top"><span class="tiny-label">ALLOSERVIX / INFO</span><button id="help-close" class="close" type="button" aria-label="Fermer">×</button></div><h2 id="help-title" data-t="helpTitle">Comment utiliser ce site ?</h2><p data-t="helpText">Trois façons de commencer : une recherche rapide, un parcours avec images et écoute, ou un catalogue détaillé. Vous pouvez changer à tout moment. Aucun compte nécessaire.</p><p data-t="helpPrivacy">Le moteur utilise le catalogue publié. Les réponses ne sont pas un diagnostic, et les notes ne sont pas envoyées par défaut.</p><a href="/mentions.html" data-t="privacy">Confidentialité</a></div></dialog>
+</body>
+</html>
