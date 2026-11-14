@@ -13,13 +13,13 @@ let ready=false;for(let i=0;i<80;i++){if(child.exitCode!==null)break;try{const r
 const j=async(p,method='GET',data,headers={})=>fetch(url+p,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...headers},body:data?JSON.stringify(data):undefined});
 let r=await j('/api/admin/overview');assert.equal(r.status,401,'private data must not be exposed');
 r=await j('/.data/alloservix.sqlite');assert.equal(r.status,404,'database cannot be served');
-r=await j('/api/public/catalog');assert.equal(r.status,200);let cat=await r.json();assert.equal(cat.services.length,32);assert.equal(cat.features.analytics,true);
+r=await j('/api/public/catalog');assert.equal(r.status,200);let cat=await r.json();assert.equal(cat.services.length,100);assert.equal(cat.features.analytics,true);
 r=await j('/api/public/assistant','POST',{question:'أحتاج نظام تسيير المخزون'});assert.equal(r.status,200);let assist=await r.json();assert.ok(assist.matches.length,'assistant should find a relevant catalog service');assert.equal(assist.engine,'catalogue-grounded');
 r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:'wrong',totp:otp()});assert.equal(r.status,401);
 r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:pw,totp:'000000'});assert.equal(r.status,401);
 r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:pw,totp:otp()});assert.equal(r.status,200);const cookie=r.headers.get('set-cookie').split(';')[0];const login=await r.json();
 assert.ok(cookie.startsWith('allo_admin='));assert.equal(login.authenticated,true);
-r=await j('/api/admin/overview','GET',undefined,{Cookie:cookie});assert.equal(r.status,200);let ov=await r.json();assert.equal(ov.total_services,32);
+r=await j('/api/admin/overview','GET',undefined,{Cookie:cookie});assert.equal(r.status,200);let ov=await r.json();assert.equal(ov.total_services,100);
 r=await j('/api/admin/services/cameras-ip','PUT',{fr:'Test change'},{Cookie:cookie});assert.equal(r.status,403,'CSRF check');
 r=await j('/api/admin/services/cameras-ip','PUT',{fr:'Caméras IP — test'},{Cookie:cookie,'X-CSRF-Token':login.csrf});assert.equal(r.status,200);
 r=await j('/api/public/catalog');cat=await r.json();assert.equal(cat.services.find(x=>x.slug==='cameras-ip').fr,'Caméras IP — test');
