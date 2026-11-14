@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const dir=__dirname,html=fs.readFileSync(path.join(dir,'index.html'),'utf8'),js=fs.readFileSync(path.join(dir,'app.js'),'utf8'),css=fs.readFileSync(path.join(dir,'style.css'),'utf8');
-const assets=['hero-wide.webp','hero-mobile.webp','service-world.webp','home.webp','shop.webp','company.webp','favicon.svg'];
+const assets=['hero-wide.svg','hero-mobile.svg','service-world.svg','home.svg','shop.svg','company.svg','favicon.svg'];
 test('all preview images and icon are present',()=>{for(const x of assets)assert.ok(fs.statSync(path.join(dir,'assets',x)).size>100,x)});
 test('existing private admin is linked but not reimplemented in client',()=>{assert.match(html,/href="\/admin"/);assert.doesNotMatch(js,/ADMIN_PASSWORD|ADMIN_TOTP_SECRET|API_KEY|localStorage\.setItem/)});
 test('forms and visible scenes have unique ids',()=>{const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(x=>x[1]);assert.equal(ids.length,new Set(ids).size)});
