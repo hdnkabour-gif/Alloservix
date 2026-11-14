@@ -59,6 +59,24 @@
       "fr": "Conseil, audit & support",
       "ar": "الاستشارة والتدقيق والدعم",
       "icon": "Clipboard"
+    },
+    {
+      "id": "audiovisual",
+      "fr": "TV, antennes & audiovisuel",
+      "ar": "التلفاز والبارابول والصوت والصورة",
+      "icon": "Tv"
+    },
+    {
+      "id": "fire",
+      "fr": "Détection incendie & sûreté",
+      "ar": "كشف الحريق وأنظمة الإنذار",
+      "icon": "Flame"
+    },
+    {
+      "id": "equipment",
+      "fr": "Équipements & assistance à l’achat",
+      "ar": "اختيار المعدات والشراء والتجهيز",
+      "icon": "ShoppingCart"
     }
   ],
   "services": [
@@ -863,6 +881,1570 @@
       ],
       "problems": [
         "Entreprise sans responsable IT interne"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "reinstallation-windows",
+      "category": "it",
+      "fr": "Réinstallation Windows avec sauvegarde",
+      "ar": "إعادة تثبيت ويندوز مع حماية الملفات",
+      "desc": "Réinstallation du système, pilotes, mises à jour et contrôle de l’état des données avant effacement.",
+      "desc_ar": "إعادة تثبيت ويندوز مع حماية الملفات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "windows formatage réinstaller réinstallation فورمات فرمتة ويندوز reinstall pc",
+      "technologies": [
+        "Windows",
+        "SSD",
+        "Pilotes"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Réinstallation du système, pilotes, mises à jour et contrôle de l’état des données avant effacement."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "installation-linux-desktop",
+      "category": "it",
+      "fr": "Installation Linux sur PC ou portable",
+      "ar": "تثبيت لينكس على الحاسوب",
+      "desc": "Installation ou migration vers Linux après vérification du matériel, des applications et des sauvegardes.",
+      "desc_ar": "تثبيت لينكس على الحاسوب — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "ubuntu debian linux mint fedora لينكس أوبونتو installation os",
+      "technologies": [
+        "Ubuntu",
+        "Debian",
+        "Linux Mint"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Installation ou migration vers Linux après vérification du matériel, des applications et des sauvegardes."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "mise-a-niveau-pc",
+      "category": "it",
+      "fr": "Amélioration PC : SSD, RAM et performances",
+      "ar": "ترقية أداء الحاسوب والذاكرة والتخزين",
+      "desc": "Diagnostic puis choix de composants compatibles pour améliorer les performances.",
+      "desc_ar": "ترقية أداء الحاسوب والذاكرة والتخزين — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "upgrade ram ssd mémoire mémoire vive bios حاسوب بطيء سرعة ram disk",
+      "technologies": [
+        "SSD",
+        "RAM",
+        "BIOS"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Diagnostic puis choix de composants compatibles pour améliorer les performances."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "nettoyage-virus",
+      "category": "it",
+      "fr": "Diagnostic virus et logiciels indésirables",
+      "ar": "فحص وإزالة البرمجيات الضارة",
+      "desc": "Analyse d’un poste suspect, sauvegarde adaptée et remise en état selon les résultats.",
+      "desc_ar": "فحص وإزالة البرمجيات الضارة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "virus malware ransomware pop up lenteur antivirus فايروس حاسوب اختراق",
+      "technologies": [
+        "Outils de diagnostic",
+        "Antivirus",
+        "Windows"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Analyse d’un poste suspect, sauvegarde adaptée et remise en état selon les résultats."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "migration-ordinateur",
+      "category": "it",
+      "fr": "Transfert des données vers un nouveau PC",
+      "ar": "نقل البيانات إلى حاسوب جديد",
+      "desc": "Préparation et transfert des fichiers et paramètres autorisés après vérification des sauvegardes.",
+      "desc_ar": "نقل البيانات إلى حاسوب جديد — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "migrer pc nouveau ordinateur transfert data disque fichiers نقل ملفات",
+      "technologies": [
+        "Windows",
+        "macOS",
+        "Linux"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Préparation et transfert des fichiers et paramètres autorisés après vérification des sauvegardes."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "reparation-demarrage",
+      "category": "it",
+      "fr": "Réparation démarrage, écran noir et pilotes",
+      "ar": "إصلاح مشاكل إقلاع الحاسوب والشاشة",
+      "desc": "Diagnostic du démarrage, pilotes, stockage et périphériques avant intervention.",
+      "desc_ar": "إصلاح مشاكل إقلاع الحاسوب والشاشة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "boot écran noir bios uefi bsod driver panne démarrage شاشة سوداء",
+      "technologies": [
+        "Windows",
+        "Linux",
+        "UEFI"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Diagnostic du démarrage, pilotes, stockage et périphériques avant intervention."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "peripheriques-pc",
+      "category": "it",
+      "fr": "Installation de périphériques et accessoires PC",
+      "ar": "تركيب ملحقات الحاسوب والأجهزة المتصلة",
+      "desc": "Connexion et configuration des écrans, webcams, claviers, imprimantes et périphériques compatibles.",
+      "desc_ar": "تركيب ملحقات الحاسوب والأجهزة المتصلة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "webcam camera usb bluetooth ecran usb c dock dock station peripheral ملحقات شاشة",
+      "technologies": [
+        "USB",
+        "Bluetooth",
+        "HDMI"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Connexion et configuration des écrans, webcams, claviers, imprimantes et périphériques compatibles."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "recuperation-fichiers",
+      "category": "it",
+      "fr": "Étude de récupération de fichiers et supports",
+      "ar": "دراسة استرجاع الملفات والبيانات",
+      "desc": "Évaluation des possibilités de récupération ; aucune garantie de restauration n’est donnée avant diagnostic.",
+      "desc_ar": "دراسة استرجاع الملفات والبيانات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "recover data disque dur clé usb ssd effacé récupération محذوف ملفات استرجاع",
+      "technologies": [
+        "SSD",
+        "HDD",
+        "USB"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Évaluation des possibilités de récupération ; aucune garantie de restauration n’est donnée avant diagnostic."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "scan-vers-dossier",
+      "category": "it",
+      "fr": "Configuration scan vers dossier et email",
+      "ar": "إعداد السكانير إلى الملفات أو البريد",
+      "desc": "Mise en place de scan réseau SMB ou email après contrôle des autorisations et accès.",
+      "desc_ar": "إعداد السكانير إلى الملفات أو البريد — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "scan smb smtp scanner réseau konica canon numérisation copier طابعة سكانير",
+      "technologies": [
+        "SMB",
+        "SMTP",
+        "TLS"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Mise en place de scan réseau SMB ou email après contrôle des autorisations et accès."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "caisse-tpe",
+      "category": "it",
+      "fr": "Installation de caisse et périphériques de vente",
+      "ar": "تركيب معدات صندوق البيع والطابعة",
+      "desc": "Étude et configuration d’un poste caisse, imprimante ticket, lecteur et réseau compatibles.",
+      "desc_ar": "تركيب معدات صندوق البيع والطابعة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "pos caisse tpe ticket reçu imprimante vente قارئ باركود صندوق البيع",
+      "technologies": [
+        "POS",
+        "Réseau",
+        "Tickets"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude et configuration d’un poste caisse, imprimante ticket, lecteur et réseau compatibles."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "wifi-maillage",
+      "category": "network",
+      "fr": "Réseau Wi-Fi mesh pour maison et villa",
+      "ar": "شبكة واي فاي منزلية بتغطية متعددة",
+      "desc": "Étude de couverture et choix de points d’accès ou mesh pour réduire les zones mal couvertes.",
+      "desc_ar": "شبكة واي فاي منزلية بتغطية متعددة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "wifi weak mesh étage riad villa الويفي ضعيف فالدار روتر راوتر signal",
+      "technologies": [
+        "Mesh",
+        "Wi-Fi 6",
+        "Points d’accès"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de couverture et choix de points d’accès ou mesh pour réduire les zones mal couvertes."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "routeur-internet",
+      "category": "network",
+      "fr": "Installation et sécurisation de routeurs Internet",
+      "ar": "تركيب وضبط راوتر الإنترنت",
+      "desc": "Configuration des routeurs, Wi-Fi, NAT et segmentation simple selon l’environnement.",
+      "desc_ar": "تركيب وضبط راوتر الإنترنت — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "routeur modem box fibre pppoe dhcp router internet tplink mikrotik راوتر",
+      "technologies": [
+        "Router",
+        "Wi-Fi",
+        "DHCP"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Configuration des routeurs, Wi-Fi, NAT et segmentation simple selon l’environnement."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "switch-vlan",
+      "category": "network",
+      "fr": "Switchs administrables, VLAN et PoE",
+      "ar": "تثبيت سويتشات وإعداد الشبكات VLAN",
+      "desc": "Étude, installation et configuration de commutateurs et segmentation réseau.",
+      "desc_ar": "تثبيت سويتشات وإعداد الشبكات VLAN — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "switch vlan poe port trunk cisco سويتش شبكة",
+      "technologies": [
+        "VLAN",
+        "PoE",
+        "Ethernet"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude, installation et configuration de commutateurs et segmentation réseau."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "armoire-brassage",
+      "category": "network",
+      "fr": "Armoire réseau, baie, brassage et étiquetage",
+      "ar": "تركيب أرموار الشبكات وترتيب الكابلات",
+      "desc": "Implantation de baie réseau, panneaux de brassage, câbles et repérage des ports.",
+      "desc_ar": "تركيب أرموار الشبكات وترتيب الكابلات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "armoire baie rack patch panel câblage cable rj45 armoire network ارمـوار راك باية",
+      "technologies": [
+        "Baie 19 pouces",
+        "RJ45",
+        "Patch panel"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Implantation de baie réseau, panneaux de brassage, câbles et repérage des ports."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "recette-cablage",
+      "category": "network",
+      "fr": "Test, repérage et certification de câblage",
+      "ar": "اختبار وفحص الكابلات ومرور الشبكة",
+      "desc": "Repérage de prises et contrôles des liaisons cuivre ou fibre, avec niveau de test adapté.",
+      "desc_ar": "اختبار وفحص الكابلات ومرور الشبكة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "fluke câble test rj45 cuivre fibre réseau câblage اختبار شبكة",
+      "technologies": [
+        "RJ45",
+        "Fibre",
+        "Testeur"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Repérage de prises et contrôles des liaisons cuivre ou fibre, avec niveau de test adapté."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "pont-wifi-sites",
+      "category": "network",
+      "fr": "Lien sans fil point à point entre bâtiments",
+      "ar": "ربط مبنيين أو موقعين بشبكة لاسلكية",
+      "desc": "Étude de visibilité, interférences, sécurité et équipements radio possibles.",
+      "desc_ar": "ربط مبنيين أو موقعين بشبكة لاسلكية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "point to point wifi bridge entrepôt deux bâtiments p2p وصلة بين مبان",
+      "technologies": [
+        "Wi-Fi PtP",
+        "Radio",
+        "VPN"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de visibilité, interférences, sécurité et équipements radio possibles."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "reseau-fibre-site",
+      "category": "network",
+      "fr": "Réseau fibre optique interne et raccordement",
+      "ar": "شبكة ألياف بصرية داخل المنشأة",
+      "desc": "Étude de chemins fibre, transceivers, connectique et prestataires de raccordement.",
+      "desc_ar": "شبكة ألياف بصرية داخل المنشأة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "fibre optique sfp switch ofc وصلة فايبر optical",
+      "technologies": [
+        "SFP",
+        "Fibre",
+        "Ethernet"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de chemins fibre, transceivers, connectique et prestataires de raccordement."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "nas-partage",
+      "category": "servers",
+      "fr": "Stockage NAS et partage de fichiers",
+      "ar": "تركيب نظام تخزين ومشاركة الملفات NAS",
+      "desc": "Choix et configuration d’une solution de stockage partagé et accès sécurisés.",
+      "desc_ar": "تركيب نظام تخزين ومشاركة الملفات NAS — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "nas synology qnap serveur fichiers raid partage stockage سيرفر ملفات",
+      "technologies": [
+        "NAS",
+        "SMB",
+        "RAID"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Choix et configuration d’une solution de stockage partagé et accès sécurisés."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "serveur-linux-web",
+      "category": "servers",
+      "fr": "Serveur Linux, services web et supervision",
+      "ar": "إعداد خادم لينكس والخدمات",
+      "desc": "Déploiement et sécurisation de services Linux compatibles avec les besoins.",
+      "desc_ar": "إعداد خادم لينكس والخدمات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "linux ubuntu debian nginx apache server ssh systemd سيرفر لينكس",
+      "technologies": [
+        "Linux",
+        "SSH",
+        "Nginx"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Déploiement et sécurisation de services Linux compatibles avec les besoins."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "serveur-windows-ad",
+      "category": "servers",
+      "fr": "Windows Server, utilisateurs et GPO",
+      "ar": "إعداد Windows Server والحسابات الجماعية",
+      "desc": "Configuration de domaine, comptes, stratégies et partage selon licences applicables.",
+      "desc_ar": "إعداد Windows Server والحسابات الجماعية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "windows server active directory gpo dns dhcp rds serveur gpo حسابات",
+      "technologies": [
+        "Windows Server",
+        "AD",
+        "GPO"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Configuration de domaine, comptes, stratégies et partage selon licences applicables."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "vmware-proxmox",
+      "category": "servers",
+      "fr": "Infrastructure virtuelle VMware, Proxmox et Hyper-V",
+      "ar": "بنية افتراضية VMware وProxmox وHyper-V",
+      "desc": "Étude de virtualisation, compatibilité de licences, stockage et sauvegarde des VM.",
+      "desc_ar": "بنية افتراضية VMware وProxmox وHyper-V — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "vmware esxi vmr vrm vm proxmox hyperv hyper v vcenter virtualisation virtual machine",
+      "technologies": [
+        "VMware",
+        "Proxmox",
+        "Hyper-V"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de virtualisation, compatibilité de licences, stockage et sauvegarde des VM."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "containers-docker",
+      "category": "servers",
+      "fr": "Applications Docker et services conteneurisés",
+      "ar": "تشغيل التطبيقات باستعمال Docker",
+      "desc": "Installation de runtime, sauvegardes, réseau et surveillance d’applications conteneurisées.",
+      "desc_ar": "تشغيل التطبيقات باستعمال Docker — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "docker container compose linux serveur deployment apps حاويات",
+      "technologies": [
+        "Docker",
+        "Compose",
+        "Linux"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Installation de runtime, sauvegardes, réseau et surveillance d’applications conteneurisées."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "onduleur-ups",
+      "category": "servers",
+      "fr": "Onduleurs UPS pour serveurs et réseau",
+      "ar": "حلول الطاقة الاحتياطية UPS للأجهزة",
+      "desc": "Évaluation de consommation, autonomie nécessaire et compatibilité d’onduleurs.",
+      "desc_ar": "حلول الطاقة الاحتياطية UPS للأجهزة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "ups onduleur power panne courant batterie serveur alimentation انقطاع الكهرباء",
+      "technologies": [
+        "UPS",
+        "Power",
+        "Batteries"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Évaluation de consommation, autonomie nécessaire et compatibilité d’onduleurs."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "monitoring-serveur",
+      "category": "servers",
+      "fr": "Surveillance serveurs, stockage et alertes",
+      "ar": "مراقبة الخوادم وتنبيهات الأعطال",
+      "desc": "Définition des métriques, seuils et alertes avec procédure de réponse.",
+      "desc_ar": "مراقبة الخوادم وتنبيهات الأعطال — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "monitoring zabbix prometheus grafana alertes cpu ram disque nginx مراقبة سيرفر",
+      "technologies": [
+        "Zabbix",
+        "Grafana",
+        "Monitoring"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Définition des métriques, seuils et alertes avec procédure de réponse."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "sauvegarde-pme",
+      "category": "servers",
+      "fr": "Sauvegardes 3-2-1 et tests de restauration",
+      "ar": "نسخ احتياطي دوري واختبارات الاسترجاع",
+      "desc": "Stratégie de copies, rétention, chiffrement et essais documentés de restauration.",
+      "desc_ar": "نسخ احتياطي دوري واختبارات الاسترجاع — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "backup nas s3 sauvegarde restauration sauvegarde cloud نسخ احتياطي استرجاع",
+      "technologies": [
+        "NAS",
+        "Cloud",
+        "Chiffrement"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Stratégie de copies, rétention, chiffrement et essais documentés de restauration."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "email-entreprise",
+      "category": "cloud",
+      "fr": "Email professionnel, domaine et messagerie",
+      "ar": "إنشاء وإعداد البريد المهني للشركات",
+      "desc": "Configuration de domaine et messagerie professionnelle, SPF/DKIM/DMARC selon plateforme.",
+      "desc_ar": "إنشاء وإعداد البريد المهني للشركات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "mail exchange outlook email gmail workspace domaine microsoft 365 بريد الكتروني",
+      "technologies": [
+        "Microsoft 365",
+        "DNS",
+        "Email"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Configuration de domaine et messagerie professionnelle, SPF/DKIM/DMARC selon plateforme."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "entra-identite",
+      "category": "cloud",
+      "fr": "Microsoft Entra ID, MFA et identités",
+      "ar": "إدارة حسابات المؤسسة والتحقق الثنائي",
+      "desc": "Gestion des identités, permissions et authentification multifacteur.",
+      "desc_ar": "إدارة حسابات المؤسسة والتحقق الثنائي — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "azure entra id mfa sso users security identity microsoft حسابات موافقة",
+      "technologies": [
+        "Entra ID",
+        "MFA",
+        "Microsoft 365"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Gestion des identités, permissions et authentification multifacteur."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "intune-postes",
+      "category": "cloud",
+      "fr": "Gestion des postes Microsoft Intune",
+      "ar": "إدارة حواسيب الموظفين باستخدام Intune",
+      "desc": "Étude d’inscription des appareils, politiques de sécurité et applications.",
+      "desc_ar": "إدارة حواسيب الموظفين باستخدام Intune — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "intune endpoint manager windows autopilot mobile devices mdm إدارة أجهزة",
+      "technologies": [
+        "Intune",
+        "Entra ID",
+        "Windows"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude d’inscription des appareils, politiques de sécurité et applications."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "machines-azure",
+      "category": "cloud",
+      "fr": "Machines virtuelles et ressources Microsoft Azure",
+      "ar": "إعداد الموارد والخوادم الافتراضية في Azure",
+      "desc": "Dimensionnement initial et contrôle des coûts, accès et sauvegardes Cloud.",
+      "desc_ar": "إعداد الموارد والخوادم الافتراضية في Azure — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "azure vm cloud machine virtuelles microsoft hosting server virtual",
+      "technologies": [
+        "Azure",
+        "VM",
+        "Réseau virtuel"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Dimensionnement initial et contrôle des coûts, accès et sauvegardes Cloud."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "migration-cloud",
+      "category": "cloud",
+      "fr": "Migration applications, messagerie et fichiers",
+      "ar": "نقل الملفات والخدمات إلى السحابة",
+      "desc": "Audit de compatibilité, plan de migration, tests et retour arrière.",
+      "desc_ar": "نقل الملفات والخدمات إلى السحابة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "migration cloud azure onedrive email sharepoint move data نقل السحابة",
+      "technologies": [
+        "Microsoft 365",
+        "Azure",
+        "Sauvegarde"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Audit de compatibilité, plan de migration, tests et retour arrière."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "securisation-wifi",
+      "category": "security",
+      "fr": "Sécurisation Wi-Fi, routeurs et comptes",
+      "ar": "حماية شبكة الواي فاي وحسابات الوصول",
+      "desc": "Contrôle des accès, changement des identifiants, segmentation et correctifs.",
+      "desc_ar": "حماية شبكة الواي فاي وحسابات الوصول — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "wpa3 wifi security mot de passe accès routeur حماية ويفي",
+      "technologies": [
+        "WPA3",
+        "VLAN",
+        "MFA"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Contrôle des accès, changement des identifiants, segmentation et correctifs."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "ransomware-recovery",
+      "category": "security",
+      "fr": "Évaluation après infection ransomware",
+      "ar": "تقييم الأضرار بعد هجوم برامج الفدية",
+      "desc": "Isolement des systèmes concernés, conservation d’éléments utiles et analyse de restauration possible.",
+      "desc_ar": "تقييم الأضرار بعد هجوم برامج الفدية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "ransomware virus infecté chiffre malware cryptolocker خبيث فايروس تشفير",
+      "technologies": [
+        "Isolation",
+        "Backup",
+        "Diagnostic"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Isolement des systèmes concernés, conservation d’éléments utiles et analyse de restauration possible."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "audit-privileges",
+      "category": "security",
+      "fr": "Audit des comptes, accès et permissions",
+      "ar": "تدقيق صلاحيات المستخدمين وحساباتهم",
+      "desc": "Inventaire des droits, MFA, comptes administrateur et actions de réduction des risques.",
+      "desc_ar": "تدقيق صلاحيات المستخدمين وحساباتهم — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "audit comptes droits permissions accès admins password مخرجات صلاحيات",
+      "technologies": [
+        "MFA",
+        "Active Directory",
+        "Audit"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Inventaire des droits, MFA, comptes administrateur et actions de réduction des risques."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "sensibilisation-cyber",
+      "category": "security",
+      "fr": "Sensibilisation à la cybersécurité",
+      "ar": "توعية المستخدمين بالأمن السيبراني",
+      "desc": "Formation pratique aux phishing, sauvegardes et bonnes habitudes de sécurité.",
+      "desc_ar": "توعية المستخدمين بالأمن السيبراني — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "formation phishing email sensibilisation cyber sécurité توعية حماية",
+      "technologies": [
+        "MFA",
+        "Phishing",
+        "Sauvegarde"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Formation pratique aux phishing, sauvegardes et bonnes habitudes de sécurité."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "application-web-pwa",
+      "category": "software",
+      "fr": "Application Web et PWA sur mesure",
+      "ar": "برمجة تطبيق ويب يعمل على الهاتف والحاسوب",
+      "desc": "Conception de parcours métiers adaptés aux utilisateurs PC et mobile, avec rôles définis.",
+      "desc_ar": "برمجة تطبيق ويب يعمل على الهاتف والحاسوب — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "application web pwa site app mobile sur mesure coding develop تطبيق ويب",
+      "technologies": [
+        "Web",
+        "PWA",
+        "API"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Conception de parcours métiers adaptés aux utilisateurs PC et mobile, avec rôles définis."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "logiciel-stock-multisite",
+      "category": "software",
+      "fr": "Gestion stock, ventes et transferts multi-sites",
+      "ar": "برنامج المخزون والمبيعات والتحويلات بين المحلات",
+      "desc": "Étude d’un système pour dépôts, magasins, ventes, factures et mouvements de stock.",
+      "desc_ar": "برنامج المخزون والمبيعات والتحويلات بين المحلات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "stock magasin ventes erp multisite depot caisse credit مخزون مبيعات مستودع",
+      "technologies": [
+        "ERP",
+        "Inventaire",
+        "Facturation"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude d’un système pour dépôts, magasins, ventes, factures et mouvements de stock."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "outil-rendezvous",
+      "category": "software",
+      "fr": "Gestion de rendez-vous et réservations",
+      "ar": "برنامج الحجوزات والمواعيد",
+      "desc": "Définition de disponibilités, notifications et règles d’annulation adaptées au métier.",
+      "desc_ar": "برنامج الحجوزات والمواعيد — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "reservation booking calendrier rendez vous appointment مواعيد حجز تطبيق",
+      "technologies": [
+        "Calendrier",
+        "Notifications",
+        "Web"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Définition de disponibilités, notifications et règles d’annulation adaptées au métier."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "portail-client",
+      "category": "software",
+      "fr": "Espace client, demandes et documents",
+      "ar": "بوابة الزبناء وتتبع الطلبات والوثائق",
+      "desc": "Conception d’un portail sécurisé pour fichiers, demandes et suivi de dossiers.",
+      "desc_ar": "بوابة الزبناء وتتبع الطلبات والوثائق — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "portail client espace documents suivi statut ticket زبون تتبع طلب",
+      "technologies": [
+        "Web",
+        "Authentification",
+        "Documents"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Conception d’un portail sécurisé pour fichiers, demandes et suivi de dossiers."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "logiciel-atelier",
+      "category": "software",
+      "fr": "Logiciel gestion atelier, réparations et pièces",
+      "ar": "برنامج تسيير الورشة والصيانة وقطع الغيار",
+      "desc": "Organisation d’ordres de réparation, opérations, consommables et traçabilité.",
+      "desc_ar": "برنامج تسيير الورشة والصيانة وقطع الغيار — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "atelier service ordre reparation pièces mécaniques stock garage ورشة صيانة سيارة",
+      "technologies": [
+        "ERP",
+        "Stock",
+        "Atelier"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Organisation d’ordres de réparation, opérations, consommables et traçabilité."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "api-integrations",
+      "category": "software",
+      "fr": "Intégration API et automatisation entre applications",
+      "ar": "ربط التطبيقات والخدمات بواسطة API",
+      "desc": "Étude des connecteurs, droits et synchronisations entre outils métiers.",
+      "desc_ar": "ربط التطبيقات والخدمات بواسطة API — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "api integration livraison paiement connecteur webhook sync plateforme ربط تطبيق",
+      "technologies": [
+        "API",
+        "Webhooks",
+        "Audit"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude des connecteurs, droits et synchronisations entre outils métiers."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "facturation-reporting",
+      "category": "software",
+      "fr": "Facturation, avoirs et états de gestion",
+      "ar": "الفواتير والتقارير ومتابعة الأداء",
+      "desc": "Modélisation des factures, règlements et tableaux de suivi selon règles applicables.",
+      "desc_ar": "الفواتير والتقارير ومتابعة الأداء — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "facture devis reçu TVA rapport analyse finance ventes تقارير فواتير",
+      "technologies": [
+        "Facturation",
+        "Reporting",
+        "Exports"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Modélisation des factures, règlements et tableaux de suivi selon règles applicables."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "outil-ocr-multilingue",
+      "category": "ai",
+      "fr": "OCR arabe, français et documents métiers",
+      "ar": "قراءة الوثائق العربية والفرنسية واستخراج البيانات",
+      "desc": "Étude d’extraction OCR avec vérification humaine des champs sensibles.",
+      "desc_ar": "قراءة الوثائق العربية والفرنسية واستخراج البيانات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "ocr arabe français anglais document scan identité data pdf ذكاء قراءة صور وثيقة",
+      "technologies": [
+        "OCR",
+        "Validation humaine",
+        "PDF"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude d’extraction OCR avec vérification humaine des champs sensibles."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "automatisation-documents",
+      "category": "ai",
+      "fr": "Automatisation de classement et saisie de documents",
+      "ar": "أتمتة تصنيف الوثائق وإدخال البيانات",
+      "desc": "Conception de circuits de contrôle, classement et validation des documents.",
+      "desc_ar": "أتمتة تصنيف الوثائق وإدخال البيانات — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "automatisation document pdf scanner email workflow classer records automatisation",
+      "technologies": [
+        "OCR",
+        "Workflow",
+        "Audit"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Conception de circuits de contrôle, classement et validation des documents."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "assistant-base-connaissance",
+      "category": "ai",
+      "fr": "Assistant interne basé sur documents approuvés",
+      "ar": "مساعد ذكي يعتمد على وثائق الشركة المعتمدة",
+      "desc": "Recherche dans une base de connaissances interne avec citations et contrôle d’accès.",
+      "desc_ar": "مساعد ذكي يعتمد على وثائق الشركة المعتمدة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "chatbot ai ia rag assistant knowledge base documents faq بوت مساعد ذكي",
+      "technologies": [
+        "Recherche",
+        "RAG",
+        "Permissions"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Recherche dans une base de connaissances interne avec citations et contrôle d’accès."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "caméras-analogiques",
+      "category": "physical",
+      "fr": "Caméras analogiques HD et DVR",
+      "ar": "كاميرات مراقبة تناظرية HD وأجهزة DVR",
+      "desc": "Étude de remplacement, câblage et compatibilité analogique/HD.",
+      "desc_ar": "كاميرات مراقبة تناظرية HD وأجهزة DVR — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "camera analogique bnc dvr coaxial hd cctv كاميرا مراقبة",
+      "technologies": [
+        "DVR",
+        "Coaxial",
+        "CCTV"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de remplacement, câblage et compatibilité analogique/HD."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "video-protection-distance",
+      "category": "physical",
+      "fr": "Accès distant aux images de vidéosurveillance",
+      "ar": "المشاهدة عن بعد لكاميرات المراقبة",
+      "desc": "Configuration sécurisée de l’accès distant, comptes et qualité du réseau.",
+      "desc_ar": "المشاهدة عن بعد لكاميرات المراقبة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "nvr dvr app smartphone video cameras cloud accès mobile مشاهدة هاتف",
+      "technologies": [
+        "NVR",
+        "VPN",
+        "Authentification"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Configuration sécurisée de l’accès distant, comptes et qualité du réseau."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "interphone-video",
+      "category": "physical",
+      "fr": "Interphones et visiophones vidéo",
+      "ar": "إنترفون بالصوت والصورة وفتح الباب",
+      "desc": "Étude, installation et configuration de postes d’interphonie compatibles.",
+      "desc_ar": "إنترفون بالصوت والصورة وفتح الباب — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "interphone visiophone sonnette porte écran audio video انترفون باب",
+      "technologies": [
+        "IP",
+        "Interphone",
+        "PoE"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude, installation et configuration de postes d’interphonie compatibles."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "alarme-intrusion",
+      "category": "physical",
+      "fr": "Alarme intrusion et détecteurs d’ouverture",
+      "ar": "أنظمة الإنذار ضد التسلل وفتح الأبواب",
+      "desc": "Étude de détection ouverture/mouvement et scénarios d’alerte.",
+      "desc_ar": "أنظمة الإنذار ضد التسلل وفتح الأبواب — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "alarm intrusion detecteur mouvement ouverture capteur maison business انذار سرقة",
+      "technologies": [
+        "Alarmes",
+        "Capteurs",
+        "Notification"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de détection ouverture/mouvement et scénarios d’alerte."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "stockage-video",
+      "category": "physical",
+      "fr": "Calcul stockage et rétention vidéosurveillance",
+      "ar": "حساب تخزين تسجيلات الكاميرات ومدة الاحتفاظ",
+      "desc": "Dimensionnement indicatif du stockage, puis validation de la rétention et des obligations applicables.",
+      "desc_ar": "حساب تخزين تسجيلات الكاميرات ومدة الاحتفاظ — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "nvr stockage camera retention jours hdd 15 jours disque تخزين كاميرات",
+      "technologies": [
+        "NVR",
+        "HDD",
+        "Politique de conservation"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Dimensionnement indicatif du stockage, puis validation de la rétention et des obligations applicables."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "motorisation-portail",
+      "category": "automation",
+      "fr": "Motorisation portail coulissant ou battant",
+      "ar": "تركيب محرك الأبواب الخارجية",
+      "desc": "Contrôle mécanique et étude des organes de sécurité avant choix du moteur.",
+      "desc_ar": "تركيب محرك الأبواب الخارجية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "portail automatic coulissant battant moteur telecommande barrier باب حديد محرك",
+      "technologies": [
+        "Motorisation",
+        "Capteurs",
+        "Commande"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Contrôle mécanique et étude des organes de sécurité avant choix du moteur."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "maison-eclairage",
+      "category": "automation",
+      "fr": "Éclairage et scénarios domotiques",
+      "ar": "إضاءة ذكية وتحكم عن بعد",
+      "desc": "Étude de commandes, scénarios et compatibilité avec l’installation électrique.",
+      "desc_ar": "إضاءة ذكية وتحكم عن بعد — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "home smart lighting zigbee wifi domotique lampe détecteur إضاءة ذكية",
+      "technologies": [
+        "Zigbee",
+        "Wi-Fi",
+        "Relais"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de commandes, scénarios et compatibilité avec l’installation électrique."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "capteurs-connectes",
+      "category": "automation",
+      "fr": "Capteurs connectés, présence et alertes",
+      "ar": "حساسات ذكية للحركة والماء والحرارة",
+      "desc": "Installation d’équipements compatibles et configuration d’alertes définies.",
+      "desc_ar": "حساسات ذكية للحركة والماء والحرارة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "iot smart sensor fuite eau temperature présence détecteur حساسات ماء حرارة",
+      "technologies": [
+        "IoT",
+        "Capteurs",
+        "Notifications"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Installation d’équipements compatibles et configuration d’alertes définies."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "antenne-parabole",
+      "category": "audiovisual",
+      "fr": "Installation parabole, LNB et orientation",
+      "ar": "تركيب وضبط طبق البارابول والـ LNB",
+      "desc": "Étude de réception et positionnement autorisé, fixation et réglage du signal.",
+      "desc_ar": "تركيب وضبط طبق البارابول والـ LNB — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "parabole satellite nilesat badr astra lnb decoder disque استقبال بارابول",
+      "technologies": [
+        "LNB",
+        "Parabole",
+        "DVB-S2"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de réception et positionnement autorisé, fixation et réglage du signal."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "reception-tv",
+      "category": "audiovisual",
+      "fr": "Diagnostic réception TV et décodeurs",
+      "ar": "إصلاح مشاكل استقبال التلفاز والريسيفر",
+      "desc": "Recherche de défauts de câble, signal, décodeur ou configuration du téléviseur.",
+      "desc_ar": "إصلاح مشاكل استقبال التلفاز والريسيفر — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "tv écran receiver decodeur satellite signal pas signal hdmi تلفاز ريسيفر",
+      "technologies": [
+        "HDMI",
+        "DVB",
+        "Télévision"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Recherche de défauts de câble, signal, décodeur ou configuration du téléviseur."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "distribution-tv",
+      "category": "audiovisual",
+      "fr": "Distribution TV et HDMI multi-pièces",
+      "ar": "توزيع إشارة التلفاز على غرف متعددة",
+      "desc": "Étude des distances, répartiteurs, amplificateurs et solutions de distribution.",
+      "desc_ar": "توزيع إشارة التلفاز على غرف متعددة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "tv hdmi splitter hdmi extender signal coax distribution multiple غرفة تلفاز",
+      "technologies": [
+        "HDMI",
+        "Coaxial",
+        "Répartiteurs"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude des distances, répartiteurs, amplificateurs et solutions de distribution."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "installation-ecran-tv",
+      "category": "audiovisual",
+      "fr": "Installation TV, écrans et supports muraux",
+      "ar": "تركيب التلفاز والشاشات على الحائط",
+      "desc": "Étude de support, fixation, sécurité, câbles et réglages de base.",
+      "desc_ar": "تركيب التلفاز والشاشات على الحائط — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "tv télévision mural support ecran led smart tv hdmi تلفاز حامل",
+      "technologies": [
+        "TV",
+        "Fixation",
+        "HDMI"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de support, fixation, sécurité, câbles et réglages de base."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "sonorisation-video",
+      "category": "audiovisual",
+      "fr": "Sonorisation, écrans et visioconférence",
+      "ar": "الأنظمة الصوتية والشاشات والاجتماعات المرئية",
+      "desc": "Étude de microphones, haut-parleurs, écrans et connexion réunion.",
+      "desc_ar": "الأنظمة الصوتية والشاشات والاجتماعات المرئية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "micro son enceinte haut parleur vidéoconférence zoom teams écran صوت",
+      "technologies": [
+        "Audio",
+        "Vidéo",
+        "Conférence"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude de microphones, haut-parleurs, écrans et connexion réunion."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "mur-ecrans",
+      "category": "audiovisual",
+      "fr": "Mur d’images et affichage professionnel",
+      "ar": "أنظمة جدران الشاشات والعرض المهني",
+      "desc": "Étude des sources, contrôleurs, matrices et écrans dédiés selon usage.",
+      "desc_ar": "أنظمة جدران الشاشات والعرض المهني — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "videowall hdmi matrix signage ecran afficheur mur écran display matrix عرض شاشات",
+      "technologies": [
+        "Videowall",
+        "HDMI",
+        "Contrôleurs"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude des sources, contrôleurs, matrices et écrans dédiés selon usage."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "detection-incendie",
+      "category": "fire",
+      "fr": "Étude de détection incendie avec intervenants habilités",
+      "ar": "دراسة كشف الحرائق مع مختصين مؤهلين",
+      "desc": "Étude du besoin et orientation vers une installation conforme réalisée et vérifiée par des professionnels habilités.",
+      "desc_ar": "دراسة كشف الحرائق مع مختصين مؤهلين — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "incendie smoke fire fumée détecteur alarme feu centrale حريق انذار دخان",
+      "technologies": [
+        "Détecteurs",
+        "Normes",
+        "Professionnels habilités"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Étude du besoin et orientation vers une installation conforme réalisée et vérifiée par des professionnels habilités."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "alarme-incendie-centrale",
+      "category": "fire",
+      "fr": "Centrale incendie, sirènes et signalisation",
+      "ar": "لوحة إنذار الحريق وصفارات الإنذار",
+      "desc": "Évaluation du dispositif requis et coordination d’un prestataire qualifié pour pose et réception.",
+      "desc_ar": "لوحة إنذار الحريق وصفارات الإنذار — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "centrale incendie alarm fire sirene détecteurs evacuations انذار صفارة",
+      "technologies": [
+        "SSI",
+        "Alarme",
+        "Essais"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Évaluation du dispositif requis et coordination d’un prestataire qualifié pour pose et réception."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "maintenance-detecteurs",
+      "category": "fire",
+      "fr": "Contrôle et suivi des détecteurs incendie",
+      "ar": "فحص ومتابعة كواشف الحريق",
+      "desc": "Plan de suivi selon installation et intervention de maintenance habilitée lorsque requis.",
+      "desc_ar": "فحص ومتابعة كواشف الحريق — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "detecteur fumée smoke sensor incendie maintenance fire check حساسات دخان",
+      "technologies": [
+        "Détecteurs",
+        "Maintenance",
+        "Journal de suivi"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Plan de suivi selon installation et intervention de maintenance habilitée lorsque requis."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "conseil-materiel",
+      "category": "equipment",
+      "fr": "Conseil choix matériel informatique et devis",
+      "ar": "مساعدة في اختيار الأجهزة والمعدات والأسعار",
+      "desc": "Comparaison de produits et compatibilités après clarification du besoin et du budget ; prix fournisseurs à vérifier.",
+      "desc_ar": "مساعدة في اختيار الأجهزة والمعدات والأسعار — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "acheter conseil choix prix devis ordinateur pc switch routeur camera ordinateur شراء ثمن",
+      "technologies": [
+        "Comparatif",
+        "Compatibilité",
+        "Devis"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Comparaison de produits et compatibilités après clarification du besoin et du budget ; prix fournisseurs à vérifier."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "approvisionnement-it",
+      "category": "equipment",
+      "fr": "Recherche fournisseurs et équipements professionnels",
+      "ar": "البحث عن الموردين والمعدات المهنية",
+      "desc": "Recherche de matériel adapté et comparaison de devis sans promesse de prix fixe ni de stock.",
+      "desc_ar": "البحث عن الموردين والمعدات المهنية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "sourcing achat fournisseur prix équipements hardware procurement materiel جهاز شراء",
+      "technologies": [
+        "Fournisseurs",
+        "Garantie",
+        "Devis"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Recherche de matériel adapté et comparaison de devis sans promesse de prix fixe ni de stock."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "mise-en-service-site",
+      "category": "equipment",
+      "fr": "Étude, achat, pose, configuration et suivi",
+      "ar": "خدمة متكاملة من الدراسة إلى التركيب والمتابعة",
+      "desc": "Coordination possible de l’étude au suivi, sous réserve de compétences et partenaires disponibles.",
+      "desc_ar": "خدمة متكاملة من الدراسة إلى التركيب والمتابعة — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "projet installation étude câblage pose config suivi complet turnkey équipement دراسة تركيب متابعة",
+      "technologies": [
+        "Étude",
+        "Planification",
+        "Tests"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Coordination possible de l’étude au suivi, sous réserve de compétences et partenaires disponibles."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "conseil-budget",
+      "category": "equipment",
+      "fr": "Étude budget économique, équilibré ou premium",
+      "ar": "دراسة الميزانية الاقتصادية والمتوسطة والاحترافية",
+      "desc": "Préparation d’options budgétaires tenant compte du prix d’achat, licences, installation et entretien.",
+      "desc_ar": "دراسة الميزانية الاقتصادية والمتوسطة والاحترافية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "budget prix estimation devis bon plan économiser achat coût total ثمن تكلفة اختيار",
+      "technologies": [
+        "TCO",
+        "Devis",
+        "Comparatif"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Préparation d’options budgétaires tenant compte du prix d’achat, licences, installation et entretien."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "assistance-particuliers",
+      "category": "consulting",
+      "fr": "Petites interventions et conseils particuliers",
+      "ar": "تدخلات تقنية صغيرة للأفراد ونصائح",
+      "desc": "Une question, une installation simple ou un diagnostic ponctuel peuvent faire l’objet d’une demande de faisabilité.",
+      "desc_ar": "تدخلات تقنية صغيرة للأفراد ونصائح — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "petite intervention une question conseil aide pc tv wifi simple مشكل صغير استفسار مساعدة",
+      "technologies": [
+        "Support",
+        "Diagnostic",
+        "Conseil"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Une question, une installation simple ou un diagnostic ponctuel peuvent faire l’objet d’une demande de faisabilité."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "visite-technique",
+      "category": "consulting",
+      "fr": "Visite technique et diagnostic sur site",
+      "ar": "زيارة تقنية لدراسة المشكل والمكان",
+      "desc": "Évaluation d’environnement, relevés utiles et proposition de pistes après visite.",
+      "desc_ar": "زيارة تقنية لدراسة المشكل والمكان — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "visite technique maison local usine site audit diagnostic زيارة ميدانية",
+      "technologies": [
+        "Relevé",
+        "Étude",
+        "Compte rendu"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Évaluation d’environnement, relevés utiles et proposition de pistes après visite."
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "formation-utilisateurs",
+      "category": "consulting",
+      "fr": "Initiation utilisateurs PC, logiciels et sécurité",
+      "ar": "تكوين المستخدمين على الأجهزة والبرامج والحماية",
+      "desc": "Accompagnement de prise en main adapté au niveau de l’utilisateur et à sa langue.",
+      "desc_ar": "تكوين المستخدمين على الأجهزة والبرامج والحماية — الخدمة متاحة للدراسة بعد التحقق من الاحتياج والإمكانيات.",
+      "terms": "formation utilisateur pc word excel windows linux apprendre تعليم تكوين",
+      "technologies": [
+        "Formation",
+        "Support",
+        "Documentation"
+      ],
+      "includes": [
+        "Recueil du besoin et vérification technique",
+        "Choix des options ou matériels compatibles",
+        "Proposition de mise en œuvre et suivi selon accord"
+      ],
+      "problems": [
+        "Accompagnement de prise en main adapté au niveau de l’utilisateur et à sa langue."
       ],
       "status": "Sur étude"
     }
