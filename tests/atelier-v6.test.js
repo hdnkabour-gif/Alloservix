@@ -1,0 +1,14 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const base=path.join(__dirname,'..','atelier-v6');
+const html=fs.readFileSync(path.join(base,'index.html'),'utf8');
+const js=fs.readFileSync(path.join(base,'app.js'),'utf8');
+const css=fs.readFileSync(path.join(base,'style.css'),'utf8');
+test('V6 preview is isolated and not indexed',()=>{assert.match(html,/<meta name="robots" content="noindex,nofollow">/);assert.match(html,/\/atelier-v6\/style\.css/);assert.match(html,/\/atelier-v6\/app\.js/);assert.match(html,/ALLOSERVIX/);});
+test('V6 has five navigable compact scenes',()=>{for(const page of ['home','quick','guide','explore','passport'])assert.match(html,new RegExp('id="screen-'+page+'"'));});
+test('V6 uses live public catalogue without admin credentials',()=>{assert.match(js,/\/api\/public\/catalog/);assert.doesNotMatch(js,/\/api\/admin\//);});
+test('V6 avoids automatic tracking or account/data collection',()=>{assert.doesNotMatch(js,/\/api\/public\/event/);assert.doesNotMatch(js,/\/api\/public\/inquiry/);assert.doesNotMatch(js,/localStorage|sessionStorage|geolocation|SpeechRecognition/);});
+test('V6 has Arabic and French, with accessible reduced motion',()=>{assert.match(js,/document\.documentElement\.dir/);assert.match(js,/ar-MA/);assert.match(html,/data-fr=/);assert.match(html,/data-ar=/);assert.match(css,/prefers-reduced-motion/);assert.match(html,/class="skip-link"/);});
+test('V6 does not manufacture a contact number',()=>{assert.match(js,/ALLO_CONFIG/);assert.match(js,/contactReady===true/);assert.doesNotMatch(html,/\+212\s*6/);});
+test('V6 has mobile bottom dock and print layout',()=>{assert.match(html,/class="bottom-dock"/);assert.match(css,/@media print/);assert.match(css,/@media \(max-width:600px\)/);});
