@@ -40,3 +40,11 @@ Open `http://localhost:3000`. Do **not** publish without review. Static service 
 - Contact data has not been verified; public quote requests and WhatsApp actions stay limited.
 - `robots.txt` disallows crawling and pages carry `noindex` until final publication.
 - Perform security, privacy, accessibility, mobile, load, backup/restore, DNS and SSL checks before production launch.
+
+## V3 Moroccan experience — isolated preview
+
+**New preview path:** `/experience/index.html` (does **not** replace `/`). Modern solution-navigation experiment designed for Moroccan visitors: choose type of need, describe it in FR / Arabic / Darija / EN, review catalogue-matched suggestions, then prepare a request locally. It uses the same protected V2 backend and the existing catalogue, without exposing the admin. No automatic visitor analytics or external AI in the V3 page. The preview is `noindex`.
+
+Full scope, what works, constraints, QR marketing scenarios and prioritized roadmap: [`experience/V3_PLAN.md`](experience/V3_PLAN.md).
+
+Run `npm test` before any release. A full real-browser visual QA remains required prior to replacing the home page; a previous environment blocked Playwright browser navigation to localhost, and no mobile visual QA should be claimed as complete.
