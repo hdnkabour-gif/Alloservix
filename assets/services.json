@@ -1,0 +1,870 @@
+{
+  "categories": [
+    {
+      "id": "it",
+      "fr": "Informatique & maintenance",
+      "ar": "المعلوميات والصيانة",
+      "icon": "Monitor"
+    },
+    {
+      "id": "network",
+      "fr": "Réseaux & connectivité",
+      "ar": "الشبكات والاتصال",
+      "icon": "Network"
+    },
+    {
+      "id": "servers",
+      "fr": "Serveurs & infrastructure",
+      "ar": "الخوادم والبنية التحتية",
+      "icon": "Server"
+    },
+    {
+      "id": "cloud",
+      "fr": "Cloud & Microsoft",
+      "ar": "الحوسبة السحابية وخدمات مايكروسوفت",
+      "icon": "Cloud"
+    },
+    {
+      "id": "security",
+      "fr": "Cybersécurité & données",
+      "ar": "الأمن السيبراني والبيانات",
+      "icon": "Shield"
+    },
+    {
+      "id": "software",
+      "fr": "Logiciels & applications métier",
+      "ar": "البرامج وتطبيقات التسيير",
+      "icon": "Code"
+    },
+    {
+      "id": "ai",
+      "fr": "Automatisation & IA",
+      "ar": "الأتمتة والذكاء الاصطناعي",
+      "icon": "Sparkles"
+    },
+    {
+      "id": "physical",
+      "fr": "Vidéosurveillance & accès",
+      "ar": "المراقبة والتحكم في الولوج",
+      "icon": "Camera"
+    },
+    {
+      "id": "automation",
+      "fr": "Domotique & motorisation",
+      "ar": "المنزل الذكي والأتمتة",
+      "icon": "Zap"
+    },
+    {
+      "id": "consulting",
+      "fr": "Conseil, audit & support",
+      "ar": "الاستشارة والتدقيق والدعم",
+      "icon": "Clipboard"
+    }
+  ],
+  "services": [
+    {
+      "slug": "depannage-pc",
+      "category": "it",
+      "fr": "Dépannage ordinateurs & PC portables",
+      "ar": "إصلاح الحواسيب المحمولة والمكتبية",
+      "desc": "Diagnostic des pannes matérielles et logicielles, remise en service et conseils de prévention.",
+      "desc_ar": "تشخيص أعطال الحواسيب وصيانتها وإعادتها للعمل.",
+      "terms": "ordinateur lent panne laptop disque ssd ram pc reparer صيانة حاسوب لابتوب كمبيوتر",
+      "technologies": [
+        "Windows",
+        "macOS",
+        "SSD",
+        "RAM",
+        "outils de diagnostic"
+      ],
+      "includes": [
+        "Diagnostic initial",
+        "proposition d’intervention",
+        "vérification après réparation"
+      ],
+      "problems": [
+        "Ordinateur lent",
+        "démarrage impossible",
+        "écran noir"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "maintenance-parc",
+      "category": "it",
+      "fr": "Maintenance de parc informatique",
+      "ar": "صيانة أجهزة الشركات",
+      "desc": "Entretien des postes de travail, suivi des incidents et interventions planifiées.",
+      "desc_ar": "صيانة وتتبع الحواسيب داخل الشركات.",
+      "terms": "entreprise parc informatique ordinateurs maintenance عقد صيانة",
+      "technologies": [
+        "Postes Windows",
+        "inventaire matériel",
+        "maintenance préventive"
+      ],
+      "includes": [
+        "Inventaire",
+        "diagnostic",
+        "programme de maintenance",
+        "rapport d’intervention"
+      ],
+      "problems": [
+        "Pannes récurrentes",
+        "ordinateurs vieillissants",
+        "suivi matériel insuffisant"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "imprimantes-scanners",
+      "category": "it",
+      "fr": "Imprimantes, scanners & numérisation",
+      "ar": "الطابعات والماسحات الضوئية",
+      "desc": "Configuration réseau et diagnostic des problèmes d’impression et de scan.",
+      "desc_ar": "إعداد وحل أعطال الطابعات والماسحات ومشاركة الملفات.",
+      "terms": "scanner smb print scan nas imprimante konica طابعة سكانير سكاني",
+      "technologies": [
+        "Impression réseau",
+        "SMB",
+        "pilotes",
+        "scan-to-folder"
+      ],
+      "includes": [
+        "Analyse du problème",
+        "configuration",
+        "tests d’impression et scan"
+      ],
+      "problems": [
+        "Le scanner ne trouve pas le dossier",
+        "l’imprimante est hors ligne"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "installation-systemes",
+      "category": "it",
+      "fr": "Installation & configuration des systèmes",
+      "ar": "تثبيت وإعداد الأنظمة",
+      "desc": "Installation, configuration et migration de postes selon les besoins.",
+      "desc_ar": "تثبيت الأنظمة والبرامج وإعداد الحواسيب.",
+      "terms": "windows mac linux formatage os ordinateur installation",
+      "technologies": [
+        "Windows",
+        "Linux",
+        "pilotes",
+        "outils bureautiques"
+      ],
+      "includes": [
+        "Analyse des prérequis",
+        "installation",
+        "configuration",
+        "contrôle"
+      ],
+      "problems": [
+        "Nouveau poste à préparer",
+        "migration vers un nouvel ordinateur"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "reseau-lan",
+      "category": "network",
+      "fr": "Installation de réseaux LAN & câblage RJ45",
+      "ar": "تركيب الشبكات الداخلية والكابلات",
+      "desc": "Étude de câblage, points réseau, brassage et mise en service des équipements.",
+      "desc_ar": "إعداد الشبكات الداخلية وكابلات RJ45 ونقاط الربط.",
+      "terms": "lan rj45 ethernet cablage baie switch prise network réseau شبكة",
+      "technologies": [
+        "Ethernet",
+        "RJ45",
+        "switch",
+        "panneau de brassage"
+      ],
+      "includes": [
+        "Repérage",
+        "pose selon étude",
+        "tests",
+        "documentation"
+      ],
+      "problems": [
+        "Bureaux sans prises réseau",
+        "câbles désorganisés"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "wifi-professionnel",
+      "category": "network",
+      "fr": "Couverture Wi-Fi maison & entreprise",
+      "ar": "تغطية واي فاي للمنازل والشركات",
+      "desc": "Audit de couverture et déploiement Wi-Fi adapté aux zones et usages.",
+      "desc_ar": "دراسة التغطية وتحسين شبكة الواي فاي.",
+      "terms": "wifi weak signal access point mesh نقاط وصول اشارة ضعيفة وايفاي",
+      "technologies": [
+        "Wi-Fi",
+        "bornes d’accès",
+        "VLAN",
+        "couverture"
+      ],
+      "includes": [
+        "Visite technique",
+        "plan de couverture",
+        "configuration",
+        "tests"
+      ],
+      "problems": [
+        "Wi-Fi faible à l’étage",
+        "connexion instable dans les bureaux"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "vpn-site-to-site",
+      "category": "network",
+      "fr": "VPN & connexion entre sites",
+      "ar": "ربط الفروع والشبكات عبر VPN",
+      "desc": "Connexion sécurisée entre bureaux, agences et utilisateurs autorisés.",
+      "desc_ar": "ربط المكاتب والفروع عن بعد حسب دراسة أمنية.",
+      "terms": "vpn firewall fortigate routeur access remote site-to-site ربط فروع",
+      "technologies": [
+        "VPN",
+        "routeurs",
+        "pare-feu",
+        "segmentation"
+      ],
+      "includes": [
+        "Analyse des accès",
+        "architecture",
+        "configuration",
+        "tests"
+      ],
+      "problems": [
+        "Deux magasins doivent accéder aux mêmes ressources"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "diagnostic-reseau",
+      "category": "network",
+      "fr": "Diagnostic & optimisation réseau",
+      "ar": "تشخيص وتحسين أداء الشبكة",
+      "desc": "Recherche de lenteurs, pertes de connexion et problèmes de configuration.",
+      "desc_ar": "تشخيص ضعف الشبكة والانقطاعات.",
+      "terms": "réseau lent pertes paquets wifi lan lenteur internet انقطاع شبكة",
+      "technologies": [
+        "Analyse réseau",
+        "journaux",
+        "adressage IP",
+        "DNS"
+      ],
+      "includes": [
+        "Mesures",
+        "identification des causes",
+        "plan de remédiation"
+      ],
+      "problems": [
+        "Déconnexions fréquentes",
+        "Internet lent malgré un bon débit"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "serveurs-windows-linux",
+      "category": "servers",
+      "fr": "Administration serveurs Windows & Linux",
+      "ar": "إدارة خوادم ويندوز ولينكس",
+      "desc": "Déploiement et maintenance de services et systèmes serveurs selon les besoins.",
+      "desc_ar": "إعداد وإدارة الخوادم وفق متطلبات العمل.",
+      "terms": "windows server linux serveur server administration خادم",
+      "technologies": [
+        "Windows Server",
+        "Linux",
+        "services réseau"
+      ],
+      "includes": [
+        "Évaluation",
+        "installation",
+        "durcissement de base",
+        "documentation"
+      ],
+      "problems": [
+        "Serveur vieillissant",
+        "besoin de partage centralisé"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "active-directory",
+      "category": "servers",
+      "fr": "Comptes, permissions & Active Directory",
+      "ar": "إدارة حسابات المستخدمين والصلاحيات",
+      "desc": "Gestion centralisée des comptes, groupes, accès et politiques des postes.",
+      "desc_ar": "تنظيم الحسابات والصلاحيات وحماية الولوج.",
+      "terms": "active directory ad utilisateurs gpo azure entra comptes permission صلاحيات",
+      "technologies": [
+        "Active Directory",
+        "groupes",
+        "GPO",
+        "Entra ID selon périmètre"
+      ],
+      "includes": [
+        "Audit des accès",
+        "organisation",
+        "configuration",
+        "procédure"
+      ],
+      "problems": [
+        "Comptes partagés",
+        "départ d’un employé mal géré"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "virtualisation",
+      "category": "servers",
+      "fr": "Virtualisation & infrastructure",
+      "ar": "المحاكاة الافتراضية والبنية التحتية",
+      "desc": "Étude et mise en œuvre d’environnements virtualisés, selon validation des compétences et licences.",
+      "desc_ar": "دراسة حلول الخوادم الافتراضية وتنفيذ المناسب منها.",
+      "terms": "hyper-v vmware proxmox virtualization virtual machines",
+      "technologies": [
+        "Hyper-V",
+        "VMware",
+        "Proxmox selon périmètre"
+      ],
+      "includes": [
+        "Étude",
+        "plan de migration",
+        "tests",
+        "documentation"
+      ],
+      "problems": [
+        "Consolidation de plusieurs serveurs physiques"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "microsoft365",
+      "category": "cloud",
+      "fr": "Microsoft 365 pour entreprises",
+      "ar": "مايكروسوفت 365 للشركات",
+      "desc": "Messagerie, collaboration et configuration des utilisateurs pour les PME.",
+      "desc_ar": "إعداد البريد المهني والتعاون وإدارة المستخدمين.",
+      "terms": "microsoft 365 outlook exchange teams onedrive business office ايميل",
+      "technologies": [
+        "Microsoft 365",
+        "Exchange Online",
+        "Teams",
+        "OneDrive"
+      ],
+      "includes": [
+        "Analyse des besoins",
+        "paramétrage",
+        "formation de base"
+      ],
+      "problems": [
+        "Créer des emails professionnels",
+        "organiser le travail d’équipe"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "sharepoint-teams",
+      "category": "cloud",
+      "fr": "SharePoint, Teams & collaboration",
+      "ar": "شيربوينت وتيمز والتعاون",
+      "desc": "Structuration des espaces documentaires et flux de collaboration.",
+      "desc_ar": "تنظيم ملفات الشركة والتعاون بين الموظفين.",
+      "terms": "sharepoint teams documents intranet collaboration",
+      "technologies": [
+        "SharePoint Online",
+        "Teams",
+        "permissions"
+      ],
+      "includes": [
+        "Arborescence",
+        "rôles",
+        "espaces de travail",
+        "guide utilisateur"
+      ],
+      "problems": [
+        "Documents dispersés",
+        "difficulté à retrouver les versions"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "azure-migration",
+      "category": "cloud",
+      "fr": "Cloud Azure & projets de migration",
+      "ar": "آزور ومشاريع الترحيل إلى السحابة",
+      "desc": "Étude de migration et de ressources Cloud avec estimation préalable et validation technique.",
+      "desc_ar": "دراسة الترحيل إلى الخدمات السحابية وفق الاحتياجات.",
+      "terms": "azure cloud migration vm cloud backup microsoft",
+      "technologies": [
+        "Azure",
+        "architectures Cloud",
+        "IAM",
+        "sauvegarde"
+      ],
+      "includes": [
+        "Audit",
+        "estimation",
+        "migration pilote",
+        "vérification"
+      ],
+      "problems": [
+        "Hébergement d’une application",
+        "migration de serveurs"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "backup-restauration",
+      "category": "security",
+      "fr": "Sauvegarde & restauration de données",
+      "ar": "النسخ الاحتياطي واسترجاع البيانات",
+      "desc": "Stratégies de sauvegarde, tests de restauration et continuité d’activité.",
+      "desc_ar": "تخطيط النسخ الاحتياطي وتجربة الاسترجاع وحماية البيانات.",
+      "terms": "backup disaster recovery nas restauration sauvegarde نسخ احتياطي استعادة",
+      "technologies": [
+        "3-2-1",
+        "stockage local/cloud",
+        "tests de restauration"
+      ],
+      "includes": [
+        "Évaluation",
+        "configuration",
+        "test de restauration",
+        "documentation"
+      ],
+      "problems": [
+        "Aucune sauvegarde fiable",
+        "risque de perdre les fichiers"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "audit-securite",
+      "category": "security",
+      "fr": "Audit de sécurité informatique",
+      "ar": "تدقيق أمن الأنظمة المعلوماتية",
+      "desc": "Revue défensive des configurations, accès et pratiques de sécurité, sur autorisation.",
+      "desc_ar": "فحص دفاعي للإعدادات والصلاحيات والمخاطر بإذن العميل.",
+      "terms": "cyber security audit firewall mfa risque securite حماية اختراق",
+      "technologies": [
+        "MFA",
+        "politiques d’accès",
+        "configuration sécurisée"
+      ],
+      "includes": [
+        "Périmètre et autorisations",
+        "revue",
+        "rapport",
+        "priorités"
+      ],
+      "problems": [
+        "Comptes sans MFA",
+        "accès trop larges",
+        "configurations obsolètes"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "protection-postes",
+      "category": "security",
+      "fr": "Protection des postes & comptes",
+      "ar": "حماية الحواسيب والحسابات",
+      "desc": "Paramétrage de protections, mises à jour et bonnes pratiques utilisateurs.",
+      "desc_ar": "إعداد الحماية والتحديثات وحسابات المستخدمين.",
+      "terms": "endpoint antivirus edr mfa microsoft defender phishing حماية",
+      "technologies": [
+        "Mises à jour",
+        "MFA",
+        "protection endpoint"
+      ],
+      "includes": [
+        "État des lieux",
+        "sécurisation",
+        "recommandations"
+      ],
+      "problems": [
+        "Emails suspects",
+        "postes non mis à jour"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "logiciel-stock",
+      "category": "software",
+      "fr": "Logiciel stock, ventes & facturation",
+      "ar": "برنامج المخزون والمبيعات والفواتير",
+      "desc": "Application métier sur mesure pour plusieurs magasins, produits, ventes et reporting.",
+      "desc_ar": "تطبيق تسيير المخزون والمبيعات والفواتير حسب نشاط الزبون.",
+      "terms": "erp logiciel stock ventes caisse facture inventaire boutique gestion برنامج مخزون مبيعات فاتورة",
+      "technologies": [
+        "Web app",
+        "rôles",
+        "inventaires",
+        "tableaux de bord"
+      ],
+      "includes": [
+        "Recueil des besoins",
+        "prototype",
+        "tests",
+        "formation"
+      ],
+      "problems": [
+        "Stock désorganisé",
+        "suivi manuel",
+        "erreurs de facturation"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "logiciel-location",
+      "category": "software",
+      "fr": "Gestion de location de véhicules",
+      "ar": "نظام تسيير كراء السيارات",
+      "desc": "Outil de gestion des véhicules, contrats, documents et échéances, selon cahier des charges.",
+      "desc_ar": "برنامج كراء السيارات والعقود والوثائق ومواعيد التسليم.",
+      "terms": "rent car location voiture contrat flotte rental agence voitures تأجير كراء السيارات",
+      "technologies": [
+        "Gestion métier",
+        "calendrier",
+        "documents",
+        "rôles"
+      ],
+      "includes": [
+        "Analyse",
+        "prototype",
+        "paramétrage",
+        "recette"
+      ],
+      "problems": [
+        "Contrats papier",
+        "suivi des retours difficile"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "sites-web",
+      "category": "software",
+      "fr": "Sites web & portails professionnels",
+      "ar": "مواقع إلكترونية وبوابات مهنية",
+      "desc": "Sites vitrines, portails et formulaires pour entreprises et professionnels.",
+      "desc_ar": "مواقع تعريفية وبوابات واستبيانات وخدمات إلكترونية.",
+      "terms": "web site vitrine portal seo site internet website موقع إلكتروني",
+      "technologies": [
+        "HTML",
+        "CMS ou application Web selon projet"
+      ],
+      "includes": [
+        "Structure",
+        "design",
+        "contenu",
+        "déploiement",
+        "contrôle"
+      ],
+      "problems": [
+        "Entreprise sans présence digitale",
+        "demandes difficiles à centraliser"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "ecommerce",
+      "category": "software",
+      "fr": "Boutiques en ligne & gestion e-commerce",
+      "ar": "متاجر إلكترونية وحلول التجارة",
+      "desc": "Vitrines marchandes et flux de commandes adaptés à l’activité commerciale.",
+      "desc_ar": "إنشاء المتاجر الرقمية وتسيير الطلبات حسب النشاط.",
+      "terms": "e commerce boutique online store livraison orders paiement متجر طلبات توصيل",
+      "technologies": [
+        "Catalogue produits",
+        "commandes",
+        "intégrations selon API"
+      ],
+      "includes": [
+        "Étude",
+        "développement",
+        "tests",
+        "accompagnement"
+      ],
+      "problems": [
+        "Vendre en ligne",
+        "suivre les commandes et livraisons"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "crm-sur-mesure",
+      "category": "software",
+      "fr": "CRM & suivi commercial sur mesure",
+      "ar": "نظام إدارة الزبائن والمتابعة التجارية",
+      "desc": "Suivi des prospects, devis, clients et tâches commerciales.",
+      "desc_ar": "تنظيم الزبائن وعروض الأسعار وفرص البيع.",
+      "terms": "crm leads devis prospects ventes commerciale suivi علاقات الزبائن",
+      "technologies": [
+        "CRM",
+        "workflow",
+        "droits",
+        "rapports"
+      ],
+      "includes": [
+        "Ateliers métier",
+        "modèles",
+        "configuration",
+        "formation"
+      ],
+      "problems": [
+        "Demandes clients perdues",
+        "absence de suivi des devis"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "ocr-documents",
+      "category": "ai",
+      "fr": "OCR & extraction de documents",
+      "ar": "قراءة الوثائق واستخراج البيانات",
+      "desc": "Extraction assistée des données, avec contrôle humain des champs sensibles.",
+      "desc_ar": "استخراج معلومات الوثائق بمراجعة بشرية للمعلومات الحساسة.",
+      "terms": "ocr id card facture document scan reconnaissance arabe français استخراج صور وثائق",
+      "technologies": [
+        "OCR multilingue",
+        "vérification",
+        "flux de validation"
+      ],
+      "includes": [
+        "Étude des formats",
+        "pilote",
+        "contrôle qualité"
+      ],
+      "problems": [
+        "Saisie manuelle longue des documents"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "automatisation-taches",
+      "category": "ai",
+      "fr": "Automatisation des tâches répétitives",
+      "ar": "أتمتة المهام المتكررة",
+      "desc": "Automatisation de processus administratifs et échanges de données autorisés.",
+      "desc_ar": "أتمتة المهام الإدارية وربط العمليات المتكررة.",
+      "terms": "api workflow automatisation integration excel n8n تقارير اتمتة",
+      "technologies": [
+        "API",
+        "workflows",
+        "imports/export CSV"
+      ],
+      "includes": [
+        "Cartographie",
+        "prototype",
+        "tests",
+        "journalisation"
+      ],
+      "problems": [
+        "Saisie répétée",
+        "copier-coller entre applications"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "dashboards",
+      "category": "ai",
+      "fr": "Tableaux de bord & reporting",
+      "ar": "لوحات التحكم والتقارير",
+      "desc": "KPI, rapports et tableaux de bord personnalisés pour les décideurs.",
+      "desc_ar": "لوحات تحليل وتقارير لدعم القرارات.",
+      "terms": "power bi dashboard analytics kpi rapport excel tableau de bord تقارير",
+      "technologies": [
+        "Tableaux de bord",
+        "visualisation",
+        "exports"
+      ],
+      "includes": [
+        "Choix des KPI",
+        "connexion autorisée",
+        "validation"
+      ],
+      "problems": [
+        "Manque de visibilité sur ventes, tickets ou stocks"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "cameras-ip",
+      "category": "physical",
+      "fr": "Installation de caméras IP & NVR",
+      "ar": "تركيب كاميرات IP وأجهزة التسجيل",
+      "desc": "Étude de couverture, installation, enregistrement et accès distant sécurisé.",
+      "desc_ar": "دراسة وتركيب كاميرات المراقبة وأجهزة التسجيل والولوج الآمن.",
+      "terms": "cctv surveillance video camera nvr dvr cam ip كاميرات مراقبة",
+      "technologies": [
+        "Caméras IP",
+        "NVR",
+        "PoE",
+        "stockage"
+      ],
+      "includes": [
+        "Visite",
+        "plan de couverture",
+        "pose",
+        "test",
+        "prise en main"
+      ],
+      "problems": [
+        "Surveiller un dépôt",
+        "voir les entrées depuis un téléphone"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "controle-acces",
+      "category": "physical",
+      "fr": "Contrôle d’accès & interphonie",
+      "ar": "أنظمة الولوج والإنترفون",
+      "desc": "Solutions de badges, contrôle des portes et interphones selon site.",
+      "desc_ar": "أنظمة فتح الأبواب بالبطاقات والإنترفون حسب المكان.",
+      "terms": "badge interphone door access contrôle accès بوابة دخول",
+      "technologies": [
+        "Badges",
+        "lecteurs",
+        "interphonie",
+        "interfaces de contrôle"
+      ],
+      "includes": [
+        "Diagnostic",
+        "proposition",
+        "installation",
+        "tests"
+      ],
+      "problems": [
+        "Contrôler entrée du personnel",
+        "interphone défectueux"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "garage-motorisation",
+      "category": "automation",
+      "fr": "Motorisation de portes de garage",
+      "ar": "أتمتة أبواب الكراج",
+      "desc": "Étude mécanique et de sécurité avant motorisation des portes existantes.",
+      "desc_ar": "دراسة محرك باب الكراج والتوازن والأمان قبل التركيب.",
+      "terms": "porte garage portail moteur motorisation counterweight باب الكراج محرك",
+      "technologies": [
+        "Moteurs compatibles",
+        "capteurs",
+        "déverrouillage manuel"
+      ],
+      "includes": [
+        "Inspection mécanique",
+        "choix matériel",
+        "pose conditionnelle",
+        "essais"
+      ],
+      "problems": [
+        "Porte de garage à ouverture manuelle"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "maison-connectee",
+      "category": "automation",
+      "fr": "Maison connectée & domotique",
+      "ar": "حلول المنزل الذكي",
+      "desc": "Contrôle coordonné de certains équipements, éclairages et accès selon compatibilité.",
+      "desc_ar": "حلول التحكم المنزلي وفق الأجهزة المتوافقة.",
+      "terms": "domotique smart home wifi eclairage maison connectée منزل ذكي",
+      "technologies": [
+        "Automatismes compatibles",
+        "réseau",
+        "commande locale/distante"
+      ],
+      "includes": [
+        "Visite",
+        "étude des équipements",
+        "configuration",
+        "tests"
+      ],
+      "problems": [
+        "Piloter éclairage ou portail à distance"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "audit-conseil",
+      "category": "consulting",
+      "fr": "Audit & conseil en transformation digitale",
+      "ar": "استشارات التحول الرقمي",
+      "desc": "Analyse de l’existant et feuille de route technique adaptée au budget.",
+      "desc_ar": "دراسة الوضع الحالي واقتراح خطة تقنية متدرجة.",
+      "terms": "conseil digital transformation audit infrastructure conseil it استشارة رقمنة",
+      "technologies": [
+        "Inventaire",
+        "architecture",
+        "analyse des besoins"
+      ],
+      "includes": [
+        "Entretiens",
+        "état des lieux",
+        "recommandations",
+        "plan d’actions"
+      ],
+      "problems": [
+        "Quels outils choisir pour digitaliser une PME ?"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "assistance-distance",
+      "category": "consulting",
+      "fr": "Assistance informatique à distance",
+      "ar": "الدعم التقني عن بعد",
+      "desc": "Prise en charge à distance des incidents compatibles, avec accord du client.",
+      "desc_ar": "مساعدة تقنية عن بعد بموافقة الزبون.",
+      "terms": "support remote assistance helpdesk dépannage distance عن بعد دعم",
+      "technologies": [
+        "Téléassistance",
+        "diagnostic",
+        "tickets"
+      ],
+      "includes": [
+        "Identification",
+        "connexion autorisée",
+        "compte rendu"
+      ],
+      "problems": [
+        "Un logiciel ne démarre pas",
+        "besoin d’aide rapide"
+      ],
+      "status": "Sur étude"
+    },
+    {
+      "slug": "maintenance-contrat",
+      "category": "consulting",
+      "fr": "Contrats de maintenance & suivi",
+      "ar": "عقود الصيانة والدعم",
+      "desc": "Maintenance planifiée avec périmètre, délais et engagements adaptés aux capacités du collectif.",
+      "desc_ar": "عقود متابعة وصيانة حسب ساعات توفر الفريق.",
+      "terms": "contrat maintenance sla suivi entreprise abonnement عقد صيانة",
+      "technologies": [
+        "Support",
+        "tickets",
+        "maintenance préventive"
+      ],
+      "includes": [
+        "Périmètre contractuel",
+        "visites",
+        "rapports"
+      ],
+      "problems": [
+        "Entreprise sans responsable IT interne"
+      ],
+      "status": "Sur étude"
+    }
+  ]
+}

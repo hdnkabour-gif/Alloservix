@@ -1,0 +1,7 @@
+'use strict';
+const crypto=require('node:crypto'),readline=require('node:readline');
+// Run locally only. Never paste secrets into ChatGPT or commit them to GitHub.
+const rl=readline.createInterface({input:process.stdin,output:process.stdout,terminal:true});
+process.stdout.write('Saisissez un mot de passe fort (minimum 16 caractères): ');
+let password='';process.stdin.setRawMode?.(true);
+process.stdin.on('data',function onData(c){const a=c.toString();if(a==='\r'||a==='\n'){process.stdin.setRawMode?.(false);process.stdin.off('data',onData);process.stdout.write('\n');rl.close();if(password.length<16){console.error('Mot de passe trop court');process.exitCode=1;return}const salt=crypto.randomBytes(24);const h=crypto.scryptSync(password,salt,64,{N:16384,r:8,p:1});password='';const totp=crypto.randomBytes(20);const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let v=0,bits=0,encoded='';for(const by of totp){v=(v<<8)|by;bits+=8;while(bits>=5){encoded+=chars[(v>>>(bits-=5))&31];v&=(1<<bits)-1}}if(bits)encoded+=chars[(v<<(5-bits))&31];console.log('\nVariables privées pour Railway (NE PAS PARTAGER):');console.log('ADMIN_PASSWORD_HASH='+salt.toString('hex')+':'+h.toString('hex'));console.log('ADMIN_TOTP_SECRET='+encoded);console.log('\nAjoutez le secret TOTP manuellement à une application Authenticator. Définissez aussi ADMIN_EMAIL.\nNe partagez jamais ces secrets par messagerie.');return}if(a==='\u0003'){process.exit(130)}if(a==='\u007f'){password=password.slice(0,-1)}else password+=a;});

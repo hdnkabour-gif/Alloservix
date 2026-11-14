@@ -1,0 +1,31 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=require('node:net'),{spawn}=require('node:child_process');
+const root=path.resolve(__dirname,'..');
+const pw='This-is-A-Strong-Test-Secret-2026!',salt=crypto.randomBytes(20),digest=crypto.scryptSync(pw,salt,64,{N:16384,r:8,p:1});
+const secret='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+function otp(){const alpha='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let v=0,b=0,bytes=[];for(const c of secret){v=(v<<5)|alpha.indexOf(c);b+=5;if(b>=8){b-=8;bytes.push(v>>b&255);v&=(1<<b)-1}}const cnt=Buffer.alloc(8);cnt.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=crypto.createHmac('sha1',Buffer.from(bytes)).update(cnt).digest();const i=h.at(-1)&15;return String((h.readUInt32BE(i)&0x7fffffff)%1e6).padStart(6,'0')}
+async function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer().listen(0,'127.0.0.1',()=>{const port=s.address().port;s.close(()=>resolve(port))});s.on('error',reject)})}
+test('Security, API, login MFA, CSRF, editing, analytics and assistant',async t=>{
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'allo-v2-')),port=await freePort(),url='http://127.0.0.1:'+port;
+const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dir,NODE_ENV:'test',ADMIN_EMAIL:'administrator@example.org',ADMIN_PASSWORD_HASH:salt.toString('hex')+':'+digest.toString('hex'),ADMIN_TOTP_SECRET:secret,ENABLE_ANALYTICS:'true'},stdio:['ignore','pipe','pipe']});
+let errs='';child.stderr.on('data',d=>{errs+=d.toString()});t.after(()=>{child.kill();fs.rmSync(dir,{recursive:true,force:true})});
+let ready=false;for(let i=0;i<80;i++){if(child.exitCode!==null)break;try{const r=await fetch(url+'/health');if(r.ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,70))}assert.ok(ready,'server never started: '+errs);
+const j=async(p,method='GET',data,headers={})=>fetch(url+p,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...headers},body:data?JSON.stringify(data):undefined});
+let r=await j('/api/admin/overview');assert.equal(r.status,401,'private data must not be exposed');
+r=await j('/.data/alloservix.sqlite');assert.equal(r.status,404,'database cannot be served');
+r=await j('/api/public/catalog');assert.equal(r.status,200);let cat=await r.json();assert.equal(cat.services.length,32);assert.equal(cat.features.analytics,true);
+r=await j('/api/public/assistant','POST',{question:'أحتاج نظام تسيير المخزون'});assert.equal(r.status,200);let assist=await r.json();assert.ok(assist.matches.length,'assistant should find a relevant catalog service');assert.equal(assist.engine,'catalogue-grounded');
+r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:'wrong',totp:otp()});assert.equal(r.status,401);
+r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:pw,totp:'000000'});assert.equal(r.status,401);
+r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:pw,totp:otp()});assert.equal(r.status,200);const cookie=r.headers.get('set-cookie').split(';')[0];const login=await r.json();
+assert.ok(cookie.startsWith('allo_admin='));assert.equal(login.authenticated,true);
+r=await j('/api/admin/overview','GET',undefined,{Cookie:cookie});assert.equal(r.status,200);let ov=await r.json();assert.equal(ov.total_services,32);
+r=await j('/api/admin/services/cameras-ip','PUT',{fr:'Test change'},{Cookie:cookie});assert.equal(r.status,403,'CSRF check');
+r=await j('/api/admin/services/cameras-ip','PUT',{fr:'Caméras IP — test'},{Cookie:cookie,'X-CSRF-Token':login.csrf});assert.equal(r.status,200);
+r=await j('/api/public/catalog');cat=await r.json();assert.equal(cat.services.find(x=>x.slug==='cameras-ip').fr,'Caméras IP — test');
+r=await j('/api/public/event','POST',{consent:false,visitor:crypto.randomUUID(),kind:'page_view',route:'/'});assert.equal(r.status,400,'consent required');
+r=await j('/api/public/event','POST',{consent:true,visitor:crypto.randomUUID(),kind:'page_view',route:'/'});assert.equal(r.status,204);
+r=await j('/api/admin/overview','GET',undefined,{Cookie:cookie});ov=await r.json();assert.ok(ov.analytics.events>=1);
+r=await j('/api/admin/logout','POST',{}, {Cookie:cookie,'X-CSRF-Token':login.csrf});assert.equal(r.status,200);
+r=await j('/api/admin/overview','GET',undefined,{Cookie:cookie});assert.equal(r.status,401,'logout revokes session');
+});

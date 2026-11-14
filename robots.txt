@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+# Remove this staging-only restriction after approving website content and contact/legal details.
