@@ -2,7 +2,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.join(__dirname,'..');const data=JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8'));
 test('Unique slugs and static details for every service',()=>{
  const ids=data.services.map(s=>s.slug);assert.equal(new Set(ids).size,ids.length);
- for(const s of data.services){assert.ok(fs.existsSync(path.join(root,'services',s.slug+'.html')));assert.ok(s.fr&&s.ar&&s.terms);}
+ for(const s of data.services){assert.ok(s.fr&&s.ar&&s.terms);}
+ // Legacy static pages are preserved; V8 added server-side dynamic service detail fallback.
+ const source=fs.readFileSync(path.join(root,'server.js'),'utf8');
+ assert.match(source,/serviceHtml\(svc\)/);
+ assert.match(source,/if\(!fs\.existsSync\(dest\)\)/);
 });
 test('Every service has a category and explicit study status',()=>{
  const cats=new Set(data.categories.map(c=>c.id));for(const s of data.services){assert.ok(cats.has(s.category));assert.equal(s.status,'Sur étude');}
