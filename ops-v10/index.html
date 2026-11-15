@@ -1,0 +1,30 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#182a55"><title>ALLOSERVIX — Operations V10</title><link rel="stylesheet" href="/ops-v10/style.css"><script src="/ops-v10/app.js" defer></script></head><body>
+<header class="top"><a class="brand" href="/admin">ALLO<span>SERVIX</span> / OPERATIONS</a><div><a href="/admin">← Administration</a> <a href="/request-v10/index.html">Portail client</a></div></header>
+<main id="app" class="shell" hidden>
+<div class="heading"><div><span class="eyebrow">CENTRE DE DISPATCH</span><h1>Demandes & techniciens</h1><p>ALLOSERVIX sélectionne les professionnels qualifiés et valide chaque affectation.</p></div><span class="pill" id="protection">Accès protégé</span></div>
+<nav class="tabs" aria-label="Opérations"><button id="show-requests" class="active" type="button">Demandes clients</button><button id="show-techs" type="button">Techniciens</button><button id="show-new-tech" type="button">+ Nouveau technicien</button></nav>
+<div id="message" role="status" aria-live="polite"></div>
+<section id="requests-view"><div class="columns"><div class="panel"><h2>Demandes reçues</h2><p class="muted">Une demande n'est pas automatiquement une réservation.</p><div id="request-list" class="stack"></div></div><div class="panel" id="request-details"><p class="muted">Sélectionnez une demande pour examiner le dossier.</p></div></div></section>
+<section id="techs-view" hidden><div class="panel"><h2>Répertoire des techniciens</h2><p class="muted">Profils privés. Les compétences sont approuvées par prestation et l'affectation exige une validation.</p><div id="tech-list" class="stack"></div></div></section>
+<section id="editor-view" hidden><div class="panel"><div class="row"><h2 id="editor-title">Ajouter un technicien</h2><button id="cancel-editor" class="secondary" type="button">Annuler</button></div><form id="technician-form"><input type="hidden" name="id"><div class="form-grid">
+<label>Nom et prénom<input name="name" maxlength="100" required></label><label>Ville<input name="city" maxlength="90" required placeholder="Casablanca"></label>
+<label>Téléphone<input name="phone" type="tel" maxlength="30"></label><label>Email<input name="email" type="email" maxlength="160"></label>
+<label>Fonction professionnelle<input name="professional_title" maxlength="140" placeholder="Technicien IT / Ingénieur réseaux"></label><label>Expérience (années)<input name="years_experience" type="number" min="0" max="60" value="0"></label>
+<label>Diplômes<textarea name="diplomas" maxlength="1200" rows="2"></textarea></label><label>Certifications / habilitations<textarea name="certifications" maxlength="1200" rows="2"></textarea></label>
+<label>Langues<input name="languages" maxlength="240" placeholder="Darija, français, arabe, anglais"></label><label>Zones couvertes (une par ligne)<textarea name="zones" rows="2" placeholder="Casablanca\nMohammedia"></textarea></label>
+<label>Équipements & outils<textarea name="tools" rows="2" maxlength="1200"></textarea></label><label>Transport / mobilité<input name="transport" maxlength="300"></label>
+<label>Horaires & disponibilité<input name="working_hours" maxlength="300" placeholder="Lundi au samedi, 18–21 h"></label><label>Statut professionnel<input name="business_status" maxlength="140" placeholder="Indépendant / société / autre"></label>
+<label>Référence accord contractuel<input name="contract_reference" maxlength="200"></label><label>Référence assurance<input name="insurance_reference" maxlength="200"></label>
+<label>Profil<select name="level"><option value="junior">Junior</option><option value="confirmed">Confirmé</option><option value="expert">Expert</option><option value="specialist">Spécialiste habilité</option></select></label>
+<label>État vérification<select name="verification_status"><option value="pending">En cours</option><option value="approved">Approuvé</option><option value="rejected">Rejeté</option></select></label>
+<label>Contrat<select name="contract_status"><option value="pending">En attente</option><option value="signed">Signé</option><option value="expired">Expiré</option></select></label>
+<label>Disponibilité<select name="availability_status"><option value="unavailable">Indisponible</option><option value="available">Disponible</option><option value="away">Absent</option></select></label>
+<label>Capacité simultanée<input name="capacity" type="number" min="1" max="25" value="1"></label>
+<label>Notes internes<textarea name="internal_notes" rows="3" maxlength="1200"></textarea></label>
+</div>
+<div class="checks"><label><input name="onsite_available" type="checkbox" checked> Intervention sur place</label><label><input name="remote_available" type="checkbox"> Intervention à distance</label><label><input name="active" type="checkbox"> Profil actif (après vérification + contrat signé)</label><label><input name="privacy_consent" type="checkbox" required> J'ai documenté l'information et l'accord du technicien concernant ses données.</label></div>
+<div class="row"><h3>Spécialisations par service</h3><button type="button" id="add-skill" class="secondary">+ Compétence</button></div><div id="skills-list" class="stack"></div><p class="muted">Une compétence ne peut être utilisée pour l'affectation qu'après vérification explicite.</p>
+<button class="primary" type="submit">Enregistrer le profil</button>
+</form></div></section>
+</main><div id="locked" class="locked" hidden><h1>Accès réservé à l'administration</h1><p>Veuillez vous connecter avec mot de passe et code Authenticator.</p><a class="primary" href="/admin">Ouvrir l'administration</a></div>
+</body></html>
