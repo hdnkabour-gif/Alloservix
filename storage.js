@@ -12,6 +12,18 @@ CREATE TABLE IF NOT EXISTS ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, day T
 CREATE TABLE IF NOT EXISTS inquiries (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, name TEXT NOT NULL, email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', topic TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'nouveau');
 CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, actor TEXT NOT NULL, action TEXT NOT NULL, resource TEXT NOT NULL, details TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS knowledge_candidates (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ reviewed_at TEXT,
+ kind TEXT NOT NULL,
+ proposal TEXT NOT NULL,
+ corrected_value TEXT NOT NULL DEFAULT '',
+ source TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'pending_review' CHECK(status IN ('pending_review','approved','rejected')),
+ reviewer_note TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_knowledge_candidates_status ON knowledge_candidates(status,created_at);
 `);
 const seeds=JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8'));
 const insert=db.prepare(`INSERT OR IGNORE INTO services(slug,category,fr,ar,description,desc_ar,terms,technologies,includes,problems,status,published) VALUES(?,?,?,?,?,?,?,?,?,?,?,1)`);
@@ -50,4 +62,21 @@ function analytics(days=30){const since=`-${days} days`;
 }
 const cleanup=()=>db.prepare("DELETE FROM events WHERE at < datetime('now','-90 days')").run();
 cleanup();
-module.exports={db,fullRows,getService,listSettings,updateService,updateSetting,logAudit,recordEvent,analytics,cleanup};
+function proposeKnowledge(v){
+ const row=db.prepare('SELECT id FROM knowledge_candidates WHERE kind=? AND proposal=? AND status=? LIMIT 1').get(v.kind,v.text,'pending_review');
+ if(row)return row.id;
+ const r=db.prepare('INSERT INTO knowledge_candidates(kind,proposal,corrected_value,source) VALUES(?,?,?,?)').run(v.kind,v.text,v.corrected_value,v.source);
+ return Number(r.lastInsertRowid);
+}
+function reviewKnowledge(id,status,note=''){
+ if(!['approved','rejected'].includes(status))throw Error('Invalid review status');
+ const record=db.prepare('SELECT * FROM knowledge_candidates WHERE id=?').get(id);
+ if(!record||record.status!=='pending_review')return null;
+ db.prepare('UPDATE knowledge_candidates SET status=?,reviewed_at=CURRENT_TIMESTAMP,reviewer_note=? WHERE id=? AND status=?').run(status,String(note).slice(0,300),id,'pending_review');
+ logAudit('review_knowledge',String(id),status);
+ return db.prepare('SELECT * FROM knowledge_candidates WHERE id=?').get(id);
+}
+// Approval confirms a knowledge candidate, not a database change to a service.
+// An administrator must separately publish a verified service edit.
+const listKnowledge=(status='pending_review')=>db.prepare('SELECT * FROM knowledge_candidates WHERE status=? ORDER BY id DESC LIMIT 100').all(status);
+module.exports={db,fullRows,getService,listSettings,updateService,updateSetting,logAudit,recordEvent,analytics,cleanup,proposeKnowledge,reviewKnowledge,listKnowledge};
