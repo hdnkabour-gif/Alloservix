@@ -1,0 +1,44 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const crypto=require('node:crypto');
+const {DatabaseSync}=require('node:sqlite');
+const {createOperations}=require('../operations');
+function fixture(){
+  const db=new DatabaseSync(':memory:');
+  db.exec('PRAGMA foreign_keys=ON');
+  const services=new Map([['reinstallation-windows',{category:'it'}],['detection-incendie',{category:'fire'}]]);
+  const ops=createOperations(db,{key:crypto.randomBytes(32).toString('hex'),getService:slug=>services.get(slug)});
+  return {db,ops,valid:slug=>services.has(slug)};
+}
+const request={consent:true,type:'repair',sector:'home',city:'Casablanca',title:'Réinstallation système',description:'Je souhaite réinstaller le système sans perdre les données.',service_slug:'reinstallation-windows',name:'Client de test',email:'test@example.org',preferred_channel:'email',answers:[{question:'Fichiers à conserver ?',answer:'Oui'}]};
+const technician={privacy_consent:true,name:'Technicien de test',email:'technicien@example.org',city:'Casablanca',zones:[],level:'expert',years_experience:12,capacity:1,onsite_available:true,verification_status:'pending',contract_status:'pending',availability_status:'available',active:false,skills:[{service_slug:'reinstallation-windows',level:'expert',verified:false}]};
+test('V10 request, tracking, private encryption and lifecycle',()=>{
+  const {db,ops,valid}=fixture();
+  assert.throws(()=>ops.createRequest({...request,consent:false},valid));
+  assert.throws(()=>ops.createRequest({...request,answers:[{question:'a',answer:'b'},{question:'a',answer:'b'},{question:'a',answer:'b'},{question:'a',answer:'b'}]},valid));
+  const r=ops.createRequest(request,valid);
+  assert.equal(ops.publicStatus(r.tracking_code,r.access_token).status,'new');
+  assert.throws(()=>ops.publicStatus(r.tracking_code,'0'.repeat(64)));
+  const id=ops.listRequests()[0].id;
+  assert.equal(ops.requestDetail(id).contact.email,'test@example.org');
+  assert.ok(!db.prepare('SELECT private_data FROM service_requests').get().private_data.includes('test@example.org'));
+  assert.equal(ops.recommend(id).length,0);
+  const t=ops.saveTechnician(technician,valid);
+  assert.equal(t.active,false);
+  assert.throws(()=>ops.saveTechnician({...technician,active:true},valid));
+  assert.equal(ops.recommend(id).length,0);
+  const updated=ops.saveTechnician({...technician,verification_status:'approved',contract_status:'signed',active:true,skills:[{service_slug:'reinstallation-windows',level:'expert',verified:true}],version:t.version},valid,t.id);
+  assert.equal(updated.active,true);
+  assert.equal(ops.recommend(id).length,1);
+  assert.throws(()=>ops.assign(id,t.id,1));
+  const reviewed=ops.changeStatus(id,'review','manual review',1);
+  const assigned=ops.assign(id,t.id,reviewed.version);
+  assert.equal(assigned.status,'assigned');
+  assert.equal(ops.recommend(id).length,0,'capacity reached');
+  const inProgress=ops.changeStatus(id,'in_progress','',assigned.version);
+  const done=ops.changeStatus(id,'completed','',inProgress.version);
+  assert.equal(done.status,'completed');
+  assert.equal(ops.publicStatus(r.tracking_code,r.access_token).status,'completed');
+  db.close();
+});

@@ -2,6 +2,7 @@
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const store=require('./storage');
 const intentEngine=require('./intent-engine');
+const operations=require('./operations').createOperations(store.db,{getService:store.getService});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
 const sessions=new Map(),rate=new Map();
@@ -73,12 +74,59 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
     return response(res,200,{...analysis,answer,engine});
   }
   if(p==='/api/public/event'&&method==='POST'){if(process.env.ENABLE_ANALYTICS!=='true')return response(res,503,{error:'Statistiques désactivées'});if(!checkRate('event:'+clientId(req),400,3600000))return response(res,429,{error:'Rate limit'});const obj=safeEvent(await bodyJson(req));if(!obj)return response(res,400,{error:'Invalid event or no consent'});store.recordEvent(obj);res.writeHead(204);return res.end();}
+  // V10 customer request lifecycle. Disabled until explicit rollout + encrypted storage key.
+  if(p==='/api/public/requests/config'&&method==='GET')return response(res,200,{enabled:process.env.ENABLE_REQUESTS==='true'&&operations.isConfigured(),max_questions:3,photo_upload:false,voice_browser_dependent:true});
+  if(p==='/api/public/requests'&&method==='POST'){
+    if(process.env.ENABLE_REQUESTS!=='true'||!operations.isConfigured())return response(res,503,{error:'Requests are not activated yet'});
+    if(!originOk(req))return response(res,403,{error:'Origin rejected'});
+    if(!checkRate('request:'+clientId(req),5,3600000))return response(res,429,{error:'Too many requests'});
+    const body=await bodyJson(req);
+    const created=operations.createRequest(body,slug=>{const s=store.getService(slug);return !!s&&s.published&&s.status!=='Indisponible'});
+    store.logAudit('request_created',created.tracking_code,'public form');return response(res,201,created);
+  }
+  if(p.startsWith('/api/public/requests/')&&method==='GET'){
+    if(process.env.ENABLE_REQUESTS!=='true'||!operations.isConfigured())return response(res,503,{error:'Requests are not activated yet'});
+    if(!checkRate('tracking:'+clientId(req),50,3600000))return response(res,429,{error:'Too many requests'});
+    try{return response(res,200,operations.publicStatus(p.split('/').at(-1),req.headers['x-request-token']))}
+    catch{return response(res,404,{error:'Request not found or invalid tracking credentials'})}
+  }
   if(p==='/api/public/inquiry'&&method==='POST'){if(process.env.ENABLE_INQUIRIES!=='true')return response(res,503,{error:'Collecte de demandes non activée'});if(!checkRate('lead:'+clientId(req),6,3600000))return response(res,429,{error:'Trop de demandes'});const b=await bodyJson(req);if(b.consent!==true)return response(res,400,{error:'Consentement requis'});const name=safeStr(b.name,100),message=safeStr(b.message,3000),email=safeStr(b.email,150),phone=safeStr(b.phone,40),topic=safeStr(b.topic,100);if(!name||message.length<12)return response(res,400,{error:'Nom et description requis'});store.db.prepare('INSERT INTO inquiries(name,email,phone,topic,message) VALUES(?,?,?,?,?)').run(name,email,phone,topic,message);return response(res,201,{ok:true});}
   // Security: no administration endpoint is accessible without authenticated session.
   if(p==='/api/admin/login'&&method==='POST'){if(!originOk(req))return response(res,403,{error:'Origin rejected'});if(!adminConfigured())return response(res,503,{error:'Administration non configurée'});const b=await bodyJson(req),email=safeStr(b.email,160).toLowerCase(),pass=typeof b.password==='string'?b.password:'',otp=safeStr(b.totp,10);if(!checkRate('login:'+clientId(req),7,900000)||!checkRate('account:'+email,15,900000))return response(res,429,{error:'Trop de tentatives. Réessayez plus tard.'});const okay=email===process.env.ADMIN_EMAIL.toLowerCase()&&passwordValid(pass,process.env.ADMIN_PASSWORD_HASH)&&totpValid(otp,process.env.ADMIN_TOTP_SECRET);if(!okay)return response(res,401,{error:'Identifiants ou code de vérification invalides'});const csrf=grantSession(req,res);store.logAudit('login','session');return response(res,200,{authenticated:true,csrf});}
   if(p==='/api/admin/session'&&method==='GET'){const s=session(req);return response(res,200,{authenticated:!!s,csrf:s?.csrf||null,configured:adminConfigured()});}
   if(p.startsWith('/api/admin/')){const s=session(req);if(!s)return response(res,401,{error:'Unauthorized'});if(method!=='GET'&&(!originOk(req)||!secureEqual(req.headers['x-csrf-token']||'',s.csrf)))return response(res,403,{error:'CSRF rejected'});
     if(p==='/api/admin/logout'&&method==='POST'){sessions.delete(s.key);res.setHeader('Set-Cookie',`allo_admin=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${production?'; Secure':''}`);return response(res,200,{ok:true});}
+    // V10 operations and technician files: protected by existing admin session, MFA and CSRF.
+    if(p==='/api/admin/ops/config'&&method==='GET')return response(res,200,{encryption_ready:operations.isConfigured(),requests_enabled:process.env.ENABLE_REQUESTS==='true'});
+    if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests()});
+    if(/^\/api\/admin\/ops\/requests\/[^/]+$/.test(p)&&method==='GET'){
+      const x=operations.requestDetail(p.split('/').at(-1));return x?response(res,200,{request:x}):response(res,404,{error:'Not found'});
+    }
+    if(/^\/api\/admin\/ops\/requests\/[^/]+\/classify$/.test(p)&&method==='PUT'){
+      const b=await bodyJson(req),updated=operations.classifyRequest(p.split('/').at(-2),b.service_slug,b.version,slug=>!!store.getService(slug));
+      store.logAudit('request_classified',updated.tracking_code,b.service_slug);return response(res,200,{request:updated});
+    }
+    if(/^\/api\/admin\/ops\/requests\/[^/]+\/candidates$/.test(p)&&method==='GET')return response(res,200,{candidates:operations.recommend(p.split('/').at(-2))});
+    if(/^\/api\/admin\/ops\/requests\/[^/]+\/status$/.test(p)&&method==='PUT'){
+      const b=await bodyJson(req),updated=operations.changeStatus(p.split('/').at(-2),b.status,b.note,b.version);
+      store.logAudit('request_status',updated.tracking_code,b.status);return response(res,200,{request:updated});
+    }
+    if(/^\/api\/admin\/ops\/requests\/[^/]+\/assignment$/.test(p)&&method==='PUT'){
+      const b=await bodyJson(req),updated=operations.assign(p.split('/').at(-2),b.technician_id,b.version);
+      store.logAudit('request_assignment',updated.tracking_code,b.technician_id);return response(res,200,{request:updated});
+    }
+    if(p==='/api/admin/ops/technicians'&&method==='GET')return response(res,200,{technicians:operations.listTechnicians()});
+    if(p==='/api/admin/ops/technicians'&&method==='POST'){
+      const b=await bodyJson(req),tech=operations.saveTechnician(b,slug=>!!store.getService(slug));
+      store.logAudit('technician_created',tech.id);return response(res,201,{technician:tech});
+    }
+    if(/^\/api\/admin\/ops\/technicians\/[^/]+$/.test(p)&&method==='GET'){
+      const tech=operations.technicianDetail(p.split('/').at(-1));return tech?response(res,200,{technician:tech}):response(res,404,{error:'Not found'});
+    }
+    if(/^\/api\/admin\/ops\/technicians\/[^/]+$/.test(p)&&method==='PUT'){
+      const b=await bodyJson(req),tech=operations.saveTechnician(b,slug=>!!store.getService(slug),p.split('/').at(-1));
+      store.logAudit('technician_updated',tech.id);return response(res,200,{technician:tech});
+    }
     if(p==='/api/admin/overview'&&method==='GET')return response(res,200,{analytics:store.analytics(30),total_services:store.fullRows().length,published_services:store.fullRows().filter(x=>x.published).length,inquiries:store.db.prepare('SELECT count(*) n FROM inquiries').get().n,settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:process.env.ENABLE_AI==='true'&&!!process.env.OPENAI_API_KEY}});
     if(p==='/api/admin/services'&&method==='GET')return response(res,200,{services:store.fullRows()});
     if(p.startsWith('/api/admin/services/')&&method==='PUT'){const slug=p.split('/').at(-1),body=await bodyJson(req);const result=store.updateService(slug,body);if(!result)return response(res,404,{error:'Service introuvable'});store.logAudit('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
@@ -90,6 +138,6 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
   if(p.startsWith('/api/'))return response(res,404,{error:'Not found'});
   if(method!=='GET'&&method!=='HEAD')return text(res,405,'Method not allowed');
   return serveFile(req,res,p==='/'?'/index.html':p==='/admin'||p==='/admin/'?'/admin/index.html':p);
-}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(/Invalid JSON|non valide|booléen/.test(e.message))return response(res,400,{error:e.message});console.error('Server request error',e.message);return response(res,500,{error:'Internal server error'});}});
+}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,400,{error:e.message});console.error('Server request error',e.message);return response(res,500,{error:'Internal server error'});}});
 server.listen(port,'0.0.0.0',()=>console.log('ALLOSERVIX V2 listening on',port));
 module.exports={server,totpValid,passwordValid,searchServices};
