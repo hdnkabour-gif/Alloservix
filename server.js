@@ -3,6 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const store=require('./storage');
 const intentEngine=require('./intent-engine');
 const aiIntent=require('./ai-intent-router');
+const studio=require('./knowledge-studio').createStudio(store.db,store,JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories.map(c=>c.id));
 const operations=require('./operations').createOperations(store.db,{getService:store.getService});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
@@ -27,7 +28,7 @@ function safeEvent(body){if(body.consent!==true)return null;const valid=['page_v
 const visitor=safeStr(body.visitor,64);if(!/^[a-f0-9-]{16,64}$/i.test(visitor))return null;
 let target=safeStr(body.target,100).replace(/(?:[\w.+-]+@[\w.-]+\.[a-z]{2,}|\+?\d[\d\s().-]{7,}\d)/gi,'[redacted]');
 return {visitor,kind:body.kind,route:safeStr(body.route,140).replace(/[^\w\-/.]/g,''),target,campaign:safeStr(body.campaign,60).replace(/[^\w\-]/g,''),last_section:safeStr(body.last_section,70).replace(/[^\w\-]/g,''),depth:[0,25,50,75,100].includes(body.depth)?body.depth:0};}
-function searchServices(query){return intentEngine.build(query,store.fullRows()).matches;}
+function searchServices(query){return intentEngine.build(query,studio.enrich(store.fullRows())).matches;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function serviceHtml(s){const cats=JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories;
   const category=cats.find(c=>c.id===s.category)?.fr||'Solutions technologiques';
@@ -52,7 +53,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
     const body=await bodyJson(req),query=safeStr(body.question,500);if(query.length<2)return response(res,400,{error:'Question trop courte'});
     const raw=body.answers&&typeof body.answers==='object'&&!Array.isArray(body.answers)?body.answers:{};
     const answers=Object.fromEntries(Object.entries(raw).filter(([key,val])=>/^(context|detail|goal)$/.test(key)&&typeof val==='string'&&/^[\w-]{1,30}$/.test(val)));
-    const catalog=store.fullRows();
+    const catalog=studio.enrich(store.fullRows());
     const analysis=intentEngine.build(query,catalog,answers);
     // Only interpretation goes to vendors, after separate visitor consent.
     // The customer-facing answer is always written by ALLOSERVIX.
@@ -92,6 +93,33 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
   if(p==='/api/admin/session'&&method==='GET'){const s=session(req);return response(res,200,{authenticated:!!s,csrf:s?.csrf||null,configured:adminConfigured()});}
   if(p.startsWith('/api/admin/')){const s=session(req);if(!s)return response(res,401,{error:'Unauthorized'});if(method!=='GET'&&(!originOk(req)||!secureEqual(req.headers['x-csrf-token']||'',s.csrf)))return response(res,403,{error:'CSRF rejected'});
     if(p==='/api/admin/logout'&&method==='POST'){sessions.delete(s.key);res.setHeader('Set-Cookie',`allo_admin=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${production?'; Secure':''}`);return response(res,200,{ok:true});}
+    // Knowledge Studio V11. Only authenticated MFA admin, writes gated by CSRF above.
+    if(p==='/api/admin/studio'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories,concepts:studio.concepts(),links:studio.links()});
+    if(p==='/api/admin/studio/services'&&method==='POST'){
+      const b=await bodyJson(req),created=studio.createService(b);
+      store.logAudit('studio_service_draft',created.slug);return response(res,201,{service:created});
+    }
+    if(p==='/api/admin/studio/concepts'&&method==='POST'){
+      const b=await bodyJson(req),created=studio.createConcept(b);
+      store.logAudit('studio_concept_draft',String(created.id));return response(res,201,{concept:created});
+    }
+    if(p==='/api/admin/studio/links'&&method==='POST'){
+      const b=await bodyJson(req),created=studio.createLink(b);
+      store.logAudit('studio_link_draft',String(created.id));return response(res,201,{link:created});
+    }
+    const studioRoute=/^\/api\/admin\/studio\/(concepts|links)\/([1-9][0-9]{0,8})(\/review)?$/.exec(p);
+    if(studioRoute&&method==='PUT'){
+      const [,kind,idString,review]=studioRoute,id=Number(idString),b=await bodyJson(req);
+      if(kind==='concepts'&&!review){
+        const result=studio.updateConcept(id,b);store.logAudit('studio_concept_update',String(id));
+        return response(res,200,{concept:result});
+      }
+      if(review){
+        const result=kind==='concepts'?studio.reviewConcept(id,b.review_state):studio.reviewLink(id,b.review_state);
+        store.logAudit('studio_'+kind+'_review',String(id),String(b.review_state));
+        return response(res,200,{result});
+      }
+    }
     // V10 operations and technician files: protected by existing admin session, MFA and CSRF.
     if(p==='/api/admin/ops/config'&&method==='GET')return response(res,200,{encryption_ready:operations.isConfigured(),requests_enabled:process.env.ENABLE_REQUESTS==='true'});
     if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests()});
