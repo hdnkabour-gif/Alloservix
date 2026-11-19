@@ -136,6 +136,14 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
         return response(res,200,{result});
       }
     }
+    if(p==='/api/admin/ai/status'&&method==='GET'){
+      const day=new Date().toISOString().slice(0,10),used=store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n;
+      const providers=new Set(aiIntent.configured());
+      return response(res,200,{providers:['openai','gemini','anthropic','deepseek'].map(name=>({name,key_configured:providers.has(name)})),
+        features:{text_intent:aiIntent.enabled(),image_intent:media.imageEnabled(),audio_transcription:media.audioEnabled()},
+        usage:{day,used,daily_limit:Math.max(0,Math.min(500,Number(process.env.AI_DAILY_LIMIT||40)||0))},
+        note:'Only configuration presence is reported. API secrets are never returned.'});
+    }
     // V10 operations and technician files: protected by existing admin session, MFA and CSRF.
     if(p==='/api/admin/ops/config'&&method==='GET')return response(res,200,{encryption_ready:operations.isConfigured(),requests_enabled:process.env.ENABLE_REQUESTS==='true'});
     if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests()});
