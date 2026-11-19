@@ -52,13 +52,13 @@ function otpAt(key, step) {
   return String((digest.readUInt32BE(off) & 0x7fffffff) % 1000000).padStart(6, '0');
 }
 // Returns the matched 30-second step (anti-replay needs it), or null. Window: previous, current, next.
-function totpMatch(code, secret, now = Date.now(), minStep = 0) {
+function totpMatch(code, secret, now = Date.now(), minStep = 0, window = 1) {
   if (!/^\d{6}$/.test(String(code || ''))) return null;
   let key;
   try { key = base32Decode(secret); if (key.length < 10) return null; } catch { return null; }
   const current = Math.floor(now / 30000);
   let matched = null;
-  for (let i = -1; i <= 1; i++) {
+  for (let i = -window; i <= window; i++) {
     const step = current + i;
     if (secureEqual(code, otpAt(key, step)) && step > minStep) matched = matched === null ? step : Math.max(matched, step);
   }
@@ -95,7 +95,7 @@ function passwordPolicy(password, email = '') {
 }
 
 // ---- Encryption of TOTP secrets (derived key, bound to the account id) -----------------------
-function createVault(env) {
+function createVault(env, info = 'alloservix-staff-totp-v1') {
   const raw = () => {
     const h = env.ALLO_DATA_KEY || '';
     if (!/^[0-9a-f]{64}$/i.test(h)) return null;
@@ -104,7 +104,7 @@ function createVault(env) {
   const key = () => {
     const master = raw();
     if (!master) throw fail('Clé de chiffrement des données non configurée (ALLO_DATA_KEY)', 503, 'vault_unavailable');
-    return Buffer.from(crypto.hkdfSync('sha256', master, Buffer.alloc(0), 'alloservix-staff-totp-v1', 32));
+    return Buffer.from(crypto.hkdfSync('sha256', master, Buffer.alloc(0), info, 32));
   };
   return {
     ready: () => raw() !== null,
@@ -145,6 +145,8 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
   `);
   const vault = createVault(env);
   // Sensitive actions need a fresh password+TOTP check within this window (default 5 min; overridable 1..900 s).
+  // Accepted clock drift in 30 s steps (default 1). Test-only knob, clamped 1..5; never raise it in production.
+  const TOTP_WINDOW = Math.max(1, Math.min(5, Math.floor(Number(env.ADMIN_TOTP_WINDOW)) || 1));
   const REAUTH_MS = Math.max(1, Math.min(900, Number(env.ADMIN_REAUTH_SECONDS) || 300)) * 1000;
   const iso = () => new Date(now()).toISOString();
   const sha = s => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -214,7 +216,7 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
     const pwOk = passwordValid(password, a.password_hash || DUMMY_HASH);
     let secret = '';
     try { secret = a.totp_secret ? vault.open(a.totp_secret, a.id) : ''; } catch { secret = ''; }
-    const step = secret ? totpMatch(totp, secret, now(), a.last_totp_step) : null;
+    const step = secret ? totpMatch(totp, secret, now(), a.last_totp_step, TOTP_WINDOW) : null;
     const ok = pwOk && step !== null && a.status === 'active';
     if (ok && consume) db.prepare('UPDATE staff_accounts SET last_totp_step=? WHERE id=?').run(step, a.id);
     return ok;
@@ -222,7 +224,7 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
   function checkEnvCredentials(password, totp, { consume }) {
     const pwOk = passwordValid(password, env.ADMIN_PASSWORD_HASH || DUMMY_HASH);
     const last = Number(getState('env_totp_step') || 0);
-    const step = totpMatch(totp, env.ADMIN_TOTP_SECRET || '', now(), last);
+    const step = totpMatch(totp, env.ADMIN_TOTP_SECRET || '', now(), last, TOTP_WINDOW);
     const ok = pwOk && step !== null;
     if (ok && consume) setState('env_totp_step', step);
     return ok;
@@ -256,7 +258,7 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
       throw uniform();
     }
     // Unknown, invited, disabled: same work, same answer.
-    passwordValid(password, DUMMY_HASH); totpMatch(totp, 'JBSWY3DPEHPK3PXP', now(), 0);
+    passwordValid(password, DUMMY_HASH); totpMatch(totp, 'JBSWY3DPEHPK3PXP', now(), 0, TOTP_WINDOW);
     if (acc) audit('login_failed', 'account:' + acc.id, 'compte non actif');
     throw uniform();
   }
@@ -395,11 +397,11 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
     return tx(() => {
       const { inv, a } = inviteByToken(token);
       if (a.status !== 'pending_mfa' || !a.pending_totp) throw fail('Définissez d’abord le mot de passe', 400);
-      const secret = vault.open(a.pending_totp, a.id), step = totpMatch(totp, secret, now(), 0);
+      const secret = vault.open(a.pending_totp, a.id), step = totpMatch(totp, secret, now(), 0, TOTP_WINDOW);
       if (step === null) throw fail('Code de vérification invalide', 400);
-      // Enrollment proves possession of the new seed; it does not consume the step, so the first login can use the same code.
-      db.prepare("UPDATE staff_accounts SET status='active',totp_secret=?,pending_totp='',last_totp_step=0,mfa_enrolled_at=?,password_changed_at=?,failed_attempts=0,locked_until=0,updated_at=?,version=version+1 WHERE id=?")
-        .run(vault.seal(secret, a.id), iso(), iso(), iso(), a.id);
+      // Enrollment consumes the step it used: the same code cannot be replayed at the first login (wait for the next code).
+      db.prepare("UPDATE staff_accounts SET status='active',totp_secret=?,pending_totp='',last_totp_step=?,mfa_enrolled_at=?,password_changed_at=?,failed_attempts=0,locked_until=0,updated_at=?,version=version+1 WHERE id=?")
+        .run(vault.seal(secret, a.id), step, iso(), iso(), iso(), a.id);
       db.prepare('UPDATE staff_invites SET used_at=? WHERE token_hash=?').run(now(), inv.token_hash);
       audit('staff_activated', 'account:' + a.id, 'MFA enrôlée', { id: a.id, email: a.email, role: a.role });
       return { activated: true, email: a.email };
@@ -433,10 +435,10 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
     return tx(() => {
       const a = dbAccountById(principal.id);
       if (!a || !a.pending_totp) throw fail('Aucune rotation en cours', 400);
-      const secret = vault.open(a.pending_totp, a.id), step = totpMatch(totp, secret, now(), 0);
+      const secret = vault.open(a.pending_totp, a.id), step = totpMatch(totp, secret, now(), 0, TOTP_WINDOW);
       if (step === null) throw fail('Code de vérification invalide', 400);
-      db.prepare("UPDATE staff_accounts SET totp_secret=?,pending_totp='',last_totp_step=0,mfa_enrolled_at=?,updated_at=?,version=version+1 WHERE id=?")
-        .run(vault.seal(secret, a.id), iso(), iso(), a.id);
+      db.prepare("UPDATE staff_accounts SET totp_secret=?,pending_totp='',last_totp_step=?,mfa_enrolled_at=?,updated_at=?,version=version+1 WHERE id=?")
+        .run(vault.seal(secret, a.id), step, iso(), iso(), a.id);
       const revoked = revokeAccountSessions(a.id, currentKey);
       audit('mfa_rotated', 'account:' + a.id, `${revoked} autre(s) session(s) fermée(s)`, principal);
       return { rotated: true, sessions_revoked: revoked };
@@ -471,10 +473,10 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
     return tx(() => {
       const a = dbAccountByEmail(principal.email);
       if (!a || a.status !== 'pending_mfa' || !a.pending_totp) throw fail('Aucune migration en cours', 400);
-      const secret = vault.open(a.pending_totp, a.id), step = totpMatch(totp, secret, now(), 0);
+      const secret = vault.open(a.pending_totp, a.id), step = totpMatch(totp, secret, now(), 0, TOTP_WINDOW);
       if (step === null) throw fail('Code de vérification invalide', 400);
-      db.prepare("UPDATE staff_accounts SET status='active',totp_secret=?,pending_totp='',last_totp_step=0,mfa_enrolled_at=?,password_changed_at=?,updated_at=?,version=version+1 WHERE id=?")
-        .run(vault.seal(secret, a.id), iso(), iso(), iso(), a.id);
+      db.prepare("UPDATE staff_accounts SET status='active',totp_secret=?,pending_totp='',last_totp_step=?,mfa_enrolled_at=?,password_changed_at=?,updated_at=?,version=version+1 WHERE id=?")
+        .run(vault.seal(secret, a.id), step, iso(), iso(), iso(), a.id);
       revokeAccountSessions('env-owner');
       audit('owner_migrated', 'account:' + a.id, 'identifiants Railway désactivés', principal);
       return { migrated: true };
@@ -492,9 +494,10 @@ function createAuth(db, { env = process.env, audit = () => {}, now = Date.now } 
     authenticate, reverify, startSession, readSession, endSession, revokeAccountSessions, markReauth, isFresh, sessionCount, publicSession,
     listAccounts, getAccount, createAccount, updateAccount, resetAccount, acceptInvite, activateInvite,
     changePassword, beginMfaRotation, confirmMfaRotation, beginOwnerMigration, confirmOwnerMigration,
+    canOpenSecret: (blob, id) => { try { vault.open(blob, id); return true; } catch { return false; } },
     envConfigured, envLoginAllowed, anyLoginConfigured, vaultReady: vault.ready,
     constants: { MAX_FAILS, LOCK_MS, INVITE_MS, REAUTH_MS, SESSION_IDLE_MS, SESSION_ABSOLUTE_MS }
   };
 }
 
-module.exports = { createAuth, totpValid, totpMatch, passwordValid, hashPassword, passwordPolicy, base32Encode, base32Decode, newTotpSecret, otpauthUri, secureEqual, fail };
+module.exports = { createVault, createAuth, totpValid, totpMatch, passwordValid, hashPassword, passwordPolicy, base32Encode, base32Decode, newTotpSecret, otpauthUri, secureEqual, fail };

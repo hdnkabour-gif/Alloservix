@@ -56,6 +56,7 @@ function createOperations(db, options={}) {
   const getRequest=id=>db.prepare('SELECT * FROM service_requests WHERE id=? OR tracking_code=?').get(id,id);
   const getTechnician=id=>db.prepare('SELECT * FROM technicians WHERE id=?').get(id);
   const event=(id,action,actor,note='',a='',b='')=>db.prepare('INSERT INTO request_events(request_id,created_at,action,actor,note,old_status,new_status) VALUES(?,?,?,?,?,?,?)').run(id,now(),action,actor,clean(note,500),a,b);
+  const PLACEHOLDER='[chiffré]';
   function createRequest(b,validService){
     getKey();
     if(b.consent!==true)fail('Consent is required');
@@ -76,19 +77,22 @@ function createOperations(db, options={}) {
     const budget=clean(b.budget,100),id=crypto.randomUUID(),secret=crypto.randomBytes(32).toString('hex');
     // Tracking code is not authentication. Secret is returned only once.
     const tracking_code='AS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
-    const private_data=encrypt({name,phone,email,address:clean(b.address,240),notes:clean(b.notes,600)});
-    db.prepare(`INSERT INTO service_requests(id,tracking_code,secret_hash,created_at,updated_at,status,type,sector,city,zone,service_slug,title,description,answers_json,budget,preferred_channel,private_data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,tracking_code,hash(secret),now(),now(),'new',type,sector,city,zone,service,title,description,JSON.stringify(sanitized),budget,channel,private_data);
+    // Everything the customer typed freely may contain personal data: it lives only inside the encrypted blob.
+    const private_data=encrypt({name,phone,email,address:clean(b.address,240),notes:clean(b.notes,600),title,description,answers:sanitized,budget});
+    db.prepare(`INSERT INTO service_requests(id,tracking_code,secret_hash,created_at,updated_at,status,type,sector,city,zone,service_slug,title,description,answers_json,budget,preferred_channel,private_data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,tracking_code,hash(secret),now(),now(),'new',type,sector,city,zone,service,PLACEHOLDER,'','[]','',channel,private_data);
     event(id,'created','visitor','','','new');
     return {tracking_code,access_token:secret,status:'new',message:'Request registered for internal review. No appointment or price confirmed.'};
   }
   function publicStatus(code,token){
     if(!/^[A-Z0-9-]{14,40}$/.test(String(code||''))||!/^[a-f0-9]{64}$/.test(String(token||'')))fail('Invalid tracking credentials');
-    const r=db.prepare('SELECT tracking_code,secret_hash,status,created_at,updated_at,title,city FROM service_requests WHERE tracking_code=?').get(code);
+    const r=db.prepare('SELECT tracking_code,secret_hash,status,created_at,updated_at,title,city,private_data FROM service_requests WHERE tracking_code=?').get(code);
     const supplied=Buffer.from(hash(token),'hex'),stored=Buffer.from(r?.secret_hash||'0'.repeat(64),'hex');
     if(!crypto.timingSafeEqual(supplied,stored)||!r)fail('Invalid tracking credentials');
-    return {tracking_code:r.tracking_code,status:r.status,created_at:r.created_at,updated_at:r.updated_at,title:r.title,city:r.city};
+    let title=r.title;try{const p=decrypt(r.private_data);if(typeof p.title==='string')title=p.title}catch{/* legacy row */}
+    return {tracking_code:r.tracking_code,status:r.status,created_at:r.created_at,updated_at:r.updated_at,title,city:r.city};
   }
-  function adminRequest(r,detail=false){const {secret_hash,private_data,...safe}=r;return {...safe,answers:JSON.parse(r.answers_json),...(detail?{contact:decrypt(private_data),events:db.prepare('SELECT created_at,action,actor,note,old_status,new_status FROM request_events WHERE request_id=? ORDER BY id DESC').all(r.id)}:{})};}
+  function adminRequest(r,detail=false){const {secret_hash,private_data,answers_json:_aj,...safe}=r;const p=decrypt(private_data),legacy=p.title===undefined;const {title:_t,description:_d,answers:_a,budget:_b,...contact}=p;
+    return {...safe,title:legacy?r.title:p.title,budget:legacy?r.budget:p.budget,description:detail?(legacy?r.description:p.description):'',answers:detail?(legacy?JSON.parse(r.answers_json):p.answers):[],legacy_plaintext:legacy,...(detail?{contact,events:db.prepare('SELECT created_at,action,actor,note,old_status,new_status FROM request_events WHERE request_id=? ORDER BY id DESC').all(r.id)}:{})};}
   function listRequests(filter={}){const rows=filter.technician_id?db.prepare('SELECT * FROM service_requests WHERE assigned_technician_id=? ORDER BY created_at DESC LIMIT 100').all(filter.technician_id):db.prepare('SELECT * FROM service_requests ORDER BY created_at DESC LIMIT 100').all();return rows.map(r=>adminRequest(r,false))}
   function requestDetail(id){const r=getRequest(id);return r?adminRequest(r,true):null}
   function changeStatus(id,status,reason='',expected_version){const r=getRequest(id);if(!r)fail('Request not found');validChoice(status,'status',allowedStatus);if(!transitions[r.status].includes(status))fail('Invalid status transition');if(expected_version!==r.version)fail('Record modified; refresh');if(status==='assigned'&&!r.assigned_technician_id)fail('Technician assignment required');db.prepare('UPDATE service_requests SET status=?,updated_at=?,version=version+1 WHERE id=?').run(status,now(),r.id);event(r.id,'status_changed','admin',reason,r.status,status);return requestDetail(r.id)}
@@ -132,6 +136,9 @@ function createOperations(db, options={}) {
       const name=p.name;return {id:v.id,name,city:v.city,skill:matching.service_slug,skill_level:matching.level,score,reasons:['verified service skill','approved & signed agreement','available',local?'coverage matches':'']}}).filter(Boolean).sort((a,b)=>b.score-a.score);
   }
   function assign(id,technician_id,expected_version){const r=getRequest(id);if(!r)fail('Request not found');if(r.version!==expected_version)fail('Record modified; refresh');if(!['approved','review'].includes(r.status))fail('Request must be approved or in review before assignment');const approved=recommend(id).find(t=>t.id===technician_id);if(!approved)fail('Technician not eligible');db.prepare("UPDATE service_requests SET assigned_technician_id=?,status='assigned',version=version+1,updated_at=? WHERE id=?").run(technician_id,now(),r.id);event(r.id,'assigned','admin','Technician selected by ALLOSERVIX',r.status,'assigned');return requestDetail(r.id)}
-  return {isConfigured,createRequest,publicStatus,listRequests,requestDetail,changeStatus,classifyRequest,saveTechnician,listTechnicians,technicianDetail,recommend,assign};
+  // Owner-triggered migration of rows created before free-text encryption existed. Idempotent.
+  function encryptLegacy(){getKey();let n=0;db.exec('SAVEPOINT enc_legacy');try{for(const r of db.prepare('SELECT id,title,description,answers_json,budget,private_data FROM service_requests').all()){const p=decrypt(r.private_data);if(p.title!==undefined)continue;p.title=r.title;p.description=r.description;p.answers=JSON.parse(r.answers_json);p.budget=r.budget;db.prepare("UPDATE service_requests SET private_data=?,title=?,description='',answers_json='[]',budget='' WHERE id=?").run(encrypt(p),PLACEHOLDER,r.id);n++}db.exec('RELEASE enc_legacy')}catch(e){db.exec('ROLLBACK TO enc_legacy');db.exec('RELEASE enc_legacy');throw e}return n}
+  const canDecrypt=blob=>{try{decrypt(blob);return true}catch{return false}};
+  return {encryptLegacy,canDecrypt,isConfigured,createRequest,publicStatus,listRequests,requestDetail,changeStatus,classifyRequest,saveTechnician,listTechnicians,technicianDetail,recommend,assign};
 }
 module.exports={createOperations,transitions,serviceTypes,sectors};

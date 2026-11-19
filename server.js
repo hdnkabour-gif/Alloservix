@@ -9,7 +9,10 @@ const operations=require('./operations').createOperations(store.db,{getService:s
 const rbac=require('./rbac');
 const {createAuth,totpValid,passwordValid}=require('./auth');
 const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
-const catalogue=require('./catalogue-admin').createCatalogue({db:store.db,store,categories:JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories});
+const catalogue=require('./catalogue-admin').createCatalogue({db:store.db,store,otherOwnerActive:email=>store.db.prepare("SELECT count(*) n FROM staff_accounts WHERE role='owner' AND status='active' AND lower(email)<>lower(?)").get(String(email)).n+(auth.envLoginAllowed()&&String(process.env.ADMIN_EMAIL||'').toLowerCase()!==String(email).toLowerCase()?1:0)>0,categories:JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories});
+const {createVault}=require('./auth');
+const inquiryVault=createVault(process.env,'alloservix-inquiries-v1');
+store.purgeInquiries(process.env.INQUIRY_RETENTION_DAYS);setInterval(()=>store.purgeInquiries(process.env.INQUIRY_RETENTION_DAYS),86400000).unref();
 const brain=require('./brain-metrics').createBrainMetrics({db:store.db,intentEngine,languageOf:require('./language-understanding').language,redact:require('./monitor').redact,sanitize:aiIntent.sanitize,aiState:{enabled:aiIntent.enabled,configured:aiIntent.configured,order:aiIntent.order,breakers:()=>aiIntent.breakers()}});
 const monitor=require('./monitor').createMonitor({db:store.db,dbFile:store.file,auth});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
@@ -21,6 +24,11 @@ const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f\u064b-
 const response=(res,status,obj)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
 const text=(res,status,body)=>{res.writeHead(status,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});res.end(body)};
 async function bodyJson(req,maxBytes=16000){const chunks=[];let total=0;const declared=Number(req.headers['content-length']||0);if(declared>maxBytes)throw Error('Body too large');for await(const chunk of req){total+=chunk.length;if(total>maxBytes)throw Error('Body too large');chunks.push(chunk)}try{return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}')}catch{throw Error('Invalid JSON')}}
+// Paid third-party calls must come from our own pages: a browser always sends Origin (or Sec-Fetch-Site) on same-origin POSTs; scripts without it are refused.
+function sameOriginStrict(req){const o=req.headers.origin;if(o){try{return new URL(o).host===req.headers.host}catch{return false}}return req.headers['sec-fetch-site']==='same-origin'}
+const envInt=(name,def,min,max)=>{const n=Number(process.env[name]);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.floor(n))):def};
+// Budget for OUTGOING provider attempts (a single visitor request can try several providers): per-provider and global daily caps.
+function providerAllowed(provider){const day=new Date().toISOString().slice(0,10),own=envInt('AI_PROVIDER_DAILY_LIMIT',200,0,5000),all=envInt('AI_DAILY_ATTEMPT_LIMIT',Math.min(1500,envInt('AI_DAILY_LIMIT',40,0,500)*3),0,5000);const q=(sql,...a)=>store.db.prepare(sql).get(...a).n;const base="FROM ai_provider_events WHERE day=? AND error NOT IN ('circuit_open','budget_exhausted')";return q('SELECT count(*) n '+base+' AND provider=?',day,provider)<own&&q('SELECT count(*) n '+base,day)<all}
 function originOk(req){const origin=req.headers.origin;if(!origin)return true;try{return new URL(origin).host===req.headers.host}catch{return false}}
 function checkRate(bucket,lim,ms){const now=Date.now(),v=rate.get(bucket)||{at:now,n:0};if(now-v.at>ms){v.at=now;v.n=0}v.n++;rate.set(bucket,v);if(rate.size>10000){for(const [k,x] of rate){if(now-x.at>86400000)rate.delete(k)}}return v.n<=lim}
 function clientId(req){return String(req.socket.remoteAddress||'unknown').slice(0,80)}
@@ -36,7 +44,10 @@ function systemContext(){const n=q=>store.db.prepare(q).get().n;const configured
   counts:{available:n("SELECT count(*) n FROM services WHERE published=1 AND status='Disponible'"),hidden:n('SELECT count(*) n FROM services WHERE published=0'),concept_approved:n("SELECT count(*) n FROM knowledge_concepts WHERE review_state='approved'"),technicians:n('SELECT count(*) n FROM technicians')}}}
 const catalogueApi=require('./catalogue-api').createCatalogueApi({catalogue,store,helpers:{response,bodyJson}});
 const brainApi=require('./brain-api').createBrainApi({brain,store,studio,helpers:{response,bodyJson}});
-const adminApi=require('./admin-api').createAdminApi({auth,store,monitor,systemContext,helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
+function encryptLegacyData(){const fail=(m,s)=>{const e=new Error(m);e.public=true;e.status=s;return e};if(!inquiryVault.ready()||!operations.isConfigured())throw fail('ALLO_DATA_KEY requise pour chiffrer les données',503);const last=monitor.listSnapshots()[0];if(!last||last.integrity!=='ok'||!last.present||Date.now()-Date.parse(last.at)>3600000)throw fail('Créez d’abord un instantané vérifié (moins d’une heure) : la migration réécrit les données',409);
+  let inquiries=0;store.db.exec('SAVEPOINT enc_inquiries');try{for(const r of store.db.prepare("SELECT id,name,email,phone,topic,message FROM inquiries WHERE enc=''").all()){store.db.prepare("UPDATE inquiries SET enc=?,name='[chiffré]',email='',phone='',topic='',message='[chiffré]' WHERE id=?").run(inquiryVault.seal(JSON.stringify({name:r.name,email:r.email,phone:r.phone,topic:r.topic,message:r.message}),'inquiry'),r.id);inquiries++}store.db.exec('RELEASE enc_inquiries')}catch(e){store.db.exec('ROLLBACK TO enc_inquiries');store.db.exec('RELEASE enc_inquiries');throw e}
+  return {inquiries,requests:operations.encryptLegacy()}}
+const adminApi=require('./admin-api').createAdminApi({auth,store,monitor,systemContext,encryptLegacyData,probeDecrypt:{request:b=>operations.canDecrypt(b),inquiry:b=>{try{inquiryVault.open(b,'inquiry');return true}catch{return false}}},helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
 function searchServices(query){return intentEngine.build(query,studio.enrich(store.fullRows())).matches;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function serviceHtml(s){const cats=JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories;
@@ -74,7 +85,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
       const count=store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n;
       if(count<limit){
         store.db.prepare('INSERT INTO ai_usage(day) VALUES(?)').run(day);
-        const insight=await aiIntent.classify(query,catalog,{onEvent:brain.providerEvent('text')});
+        const insight=await aiIntent.classify(query,catalog,{onEvent:brain.providerEvent('text'),allowProvider:providerAllowed});
         result=aiIntent.applySuggestion(analysis,insight,catalog,answers);
         ai={outcome:insight?'ok':'failed',provider:insight?.provider||''};
       }else ai.outcome='quota_exhausted';
@@ -84,18 +95,20 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
   }
   // Ephemeral media intake; the visitor must explicitly approve provider processing.
   if((p==='/api/public/understand-image'||p==='/api/public/transcribe-audio')&&method==='POST'){
-    if(!originOk(req))return response(res,403,{error:'Origin rejected'});
+    if(!sameOriginStrict(req))return response(res,403,{error:'Origin rejected'});
     const isImage=p==='/api/public/understand-image';
     if(!(isImage?media.imageEnabled():media.audioEnabled()))return response(res,503,{error:'Media assistance not enabled'});
-    if(!checkRate((isImage?'image:':'audio:')+clientId(req),isImage?8:6,3600000))return response(res,429,{error:'Too many media requests'});
+    if(!checkRate((isImage?'image:':'audio:')+clientId(req),isImage?8:6,3600000)||!checkRate('media-global',envInt('MEDIA_HOURLY_LIMIT',60,1,2000),3600000))return response(res,429,{error:'Too many media requests'});
     const b=await bodyJson(req,isImage?1800000:2050000);
     if(b.allow_external_processing!==true)return response(res,400,{error:'Explicit media consent required'});
     try{media.parseDataUrl(b.data_url,isImage?'image':'audio')}catch{return response(res,400,{error:'Unsupported or oversized media'})}
     const day=new Date().toISOString().slice(0,10),n=Number(process.env.AI_DAILY_LIMIT||40),max=Number.isFinite(n)?Math.max(0,Math.min(500,Math.floor(n))):40;
     if(store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n>=max)return response(res,429,{error:'Daily AI budget reached'});
-    store.db.prepare('INSERT INTO ai_usage(day) VALUES(?)').run(day);
-    const tMedia=Date.now(),onEvent=brain.providerEvent(isImage?'image':'audio');
-    const result=isImage?await media.analyzeImage(b.data_url,{lang:b.lang==='ar'?'ar':'fr',onEvent}):await media.transcribeAudio(b.data_url,{onEvent});
+    const kind=isImage?'image':'audio',kindMax=envInt(isImage?'AI_IMAGE_DAILY_LIMIT':'AI_AUDIO_DAILY_LIMIT',20,0,500);
+    if(store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=? AND kind=?').get(day,kind).n>=kindMax)return response(res,429,{error:'Daily '+kind+' budget reached'});
+    store.db.prepare('INSERT INTO ai_usage(day,kind) VALUES(?,?)').run(day,kind);
+    const tMedia=Date.now(),onEvent=brain.providerEvent(kind);
+    const result=isImage?await media.analyzeImage(b.data_url,{lang:b.lang==='ar'?'ar':'fr',onEvent,allowProvider:providerAllowed}):await media.transcribeAudio(b.data_url,{onEvent,allowProvider:providerAllowed});
     brain.recordMedia({kind:isImage?'image':'audio',ok:Boolean(result),provider:result?.provider||'',ms:Date.now()-tMedia,confidence:result?.observed?.confidence});
     return result?response(res,200,result):response(res,503,{error:'Media recognition unavailable; describe your need in text'});
   }
@@ -116,7 +129,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     try{return response(res,200,operations.publicStatus(p.split('/').at(-1),req.headers['x-request-token']))}
     catch{return response(res,404,{error:'Request not found or invalid tracking credentials'})}
   }
-  if(p==='/api/public/inquiry'&&method==='POST'){if(process.env.ENABLE_INQUIRIES!=='true')return response(res,503,{error:'Collecte de demandes non activée'});if(!checkRate('lead:'+clientId(req),6,3600000))return response(res,429,{error:'Trop de demandes'});const b=await bodyJson(req);if(b.consent!==true)return response(res,400,{error:'Consentement requis'});const name=safeStr(b.name,100),message=safeStr(b.message,3000),email=safeStr(b.email,150),phone=safeStr(b.phone,40),topic=safeStr(b.topic,100);if(!name||message.length<12)return response(res,400,{error:'Nom et description requis'});store.db.prepare('INSERT INTO inquiries(name,email,phone,topic,message) VALUES(?,?,?,?,?)').run(name,email,phone,topic,message);return response(res,201,{ok:true});}
+  if(p==='/api/public/inquiry'&&method==='POST'){if(process.env.ENABLE_INQUIRIES!=='true')return response(res,503,{error:'Collecte de demandes non activée'});if(!checkRate('lead:'+clientId(req),6,3600000))return response(res,429,{error:'Trop de demandes'});const b=await bodyJson(req);if(b.consent!==true)return response(res,400,{error:'Consentement requis'});const name=safeStr(b.name,100),message=safeStr(b.message,3000),email=safeStr(b.email,150),phone=safeStr(b.phone,40),topic=safeStr(b.topic,100);if(!name||message.length<12)return response(res,400,{error:'Nom et description requis'});if(!inquiryVault.ready())return response(res,503,{error:'Collecte indisponible : chiffrement non configuré'});store.db.prepare('INSERT INTO inquiries(name,email,phone,topic,message,enc) VALUES(?,?,?,?,?,?)').run('[chiffré]','','','','[chiffré]',inquiryVault.seal(JSON.stringify({name,email,phone,topic,message}),'inquiry'));return response(res,201,{ok:true});}
   // Security: no administration endpoint is accessible without authenticated session.
   if(p==='/api/admin/login'&&method==='POST'){if(!originOk(req))return response(res,403,{error:'Origin rejected'});if(!auth.anyLoginConfigured())return response(res,503,{error:'Administration non configurée'});const b=await bodyJson(req),email=safeStr(b.email,160).toLowerCase(),pass=typeof b.password==='string'?b.password:'',otp=safeStr(b.totp,10);if(!checkRate('login:'+clientId(req),7*rateScale,900000)||!checkRate('account:'+email,15,900000))return response(res,429,{error:'Trop de tentatives. Réessayez plus tard.'});const {principal}=auth.authenticate(email,pass,otp);const csrf=auth.startSession(principal,res,production);store.logAudit('login','session','',principal);return response(res,200,{authenticated:true,csrf,...auth.publicSession({principal,reauthAt:Date.now()})});}
   if(p==='/api/admin/session'&&method==='GET'){const s=auth.readSession(req);return response(res,200,{authenticated:!!s,csrf:s?.csrf||null,configured:auth.anyLoginConfigured(),...(s?auth.publicSession(s):{})});}
@@ -177,16 +190,16 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     }
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/classify$/.test(p)&&method==='PUT'){
       const b=await bodyJson(req),updated=operations.classifyRequest(p.split('/').at(-2),b.service_slug,b.version,slug=>!!store.getService(slug));
-      A('request_classified',updated.tracking_code,b.service_slug);return response(res,200,{request:updated});
+      A('request_classified',updated.tracking_code,b.service_slug);return response(res,200,{request:redactFor(updated)});
     }
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/candidates$/.test(p)&&method==='GET')return response(res,200,{candidates:operations.recommend(p.split('/').at(-2))});
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/status$/.test(p)&&method==='PUT'){
       const b=await bodyJson(req);if(isTech){const own=operations.requestDetail(p.split('/').at(-2));if(!techScope(own)||!['in_progress','completed'].includes(b.status))return response(res,403,{error:'Action non autorisée pour ce rôle',code:'forbidden'})}const updated=operations.changeStatus(p.split('/').at(-2),b.status,b.note,b.version);
-      A('request_status',updated.tracking_code,b.status);return response(res,200,{request:updated});
+      A('request_status',updated.tracking_code,b.status);return response(res,200,{request:redactFor(updated)});
     }
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/assignment$/.test(p)&&method==='PUT'){
       const b=await bodyJson(req),updated=operations.assign(p.split('/').at(-2),b.technician_id,b.version);
-      A('request_assignment',updated.tracking_code,b.technician_id);return response(res,200,{request:updated});
+      A('request_assignment',updated.tracking_code,b.technician_id);return response(res,200,{request:redactFor(updated)});
     }
     if(p==='/api/admin/ops/technicians'&&method==='GET')return response(res,200,{technicians:operations.listTechnicians()});
     if(p==='/api/admin/ops/technicians'&&method==='POST'){
@@ -242,8 +255,8 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     if(p==='/api/admin/overview'&&method==='GET')return response(res,200,{analytics:store.analytics(30),total_services:store.fullRows().length,published_services:store.fullRows().filter(x=>x.published).length,inquiries:store.db.prepare('SELECT count(*) n FROM inquiries').get().n,settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});
     if(p==='/api/admin/services'&&method==='GET')return response(res,200,{services:store.fullRows()});
     if(p.startsWith('/api/admin/services/')&&method==='PUT'){let slug;try{slug=decodeURIComponent(p.split('/').at(-1))}catch{return response(res,400,{error:'Identifiant de service invalide'})}const body=await bodyJson(req);const current=store.getService(slug);if(current&&((Object.hasOwn(body,'published')&&body.published!==current.published)||(Object.hasOwn(body,'status')&&body.status!==current.status))&&!rbac.can(actor.role,'catalogue.publish'))return response(res,403,{error:'Seul un propriétaire peut publier ou changer la disponibilité',code:'forbidden',required:'catalogue.publish'});if((Object.hasOwn(body,'fr')||Object.hasOwn(body,'ar'))&&current)catalogue.assertNotDuplicate({fr:body.fr??current.fr,ar:body.ar??current.ar,slug},{excludeSlug:slug,force:body.force_duplicate===true});const result=store.updateService(slug,body,{actor,source:'direct-edit',note:typeof body.note==='string'?body.note.slice(0,200):''});if(!result)return response(res,404,{error:'Service introuvable'});A('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
-    if(p==='/api/admin/settings'&&method==='PUT'){const b=await bodyJson(req);if(typeof b!=='object'||!b||Array.isArray(b))return response(res,400,{error:'Invalid'});for(const [k,v] of Object.entries(b))store.updateSetting(k,v);A('update_settings','website',Object.keys(b).join(','));return response(res,200,{settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});}
-    if(p==='/api/admin/inquiries'&&method==='GET')return response(res,200,{inquiries:store.db.prepare('SELECT * FROM inquiries ORDER BY id DESC LIMIT 80').all()});
+    if(p==='/api/admin/settings'&&method==='PUT'){const b=await bodyJson(req);store.updateSettings(b,keys=>A('update_settings','website',keys.join(',')));return response(res,200,{settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});}
+    if(p==='/api/admin/inquiries'&&method==='GET')return response(res,200,{inquiries:store.db.prepare('SELECT * FROM inquiries ORDER BY id DESC LIMIT 80').all().map(({enc,...r})=>{if(!enc)return {...r,legacy_plaintext:true};try{return {...r,...JSON.parse(inquiryVault.open(enc,'inquiry')),legacy_plaintext:false}}catch{return {...r,name:'[illisible : clé différente ?]',message:'',legacy_plaintext:false}}})});
     if(p==='/api/admin/audit'&&method==='GET')return response(res,200,{audit:store.listAudit({limit:u.searchParams.get('limit')||80,offset:u.searchParams.get('offset')||0,action:u.searchParams.get('action')||'',actor:u.searchParams.get('actor')||''}),integrity:store.verifyAudit()});
     return response(res,404,{error:'Not found'});
   }

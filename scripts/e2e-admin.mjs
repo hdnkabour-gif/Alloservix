@@ -69,6 +69,9 @@ try {
   check('domain check renders a verdict per configured domain', (await page.$$('.invite-box')).length >= 1 && /Certificat valide/.test(await page.textContent('#view')));
   await page.screenshot({ path: path.join(shots, '03b-system-domain.png'), fullPage: true });
   await page.click('button:has-text("Créer un instantané")'); await page.waitForSelector('#toast.show'); await page.waitForTimeout(600);
+  await page.waitForSelector('button:has-text("Tester la restauration")'); await page.click('button:has-text("Tester la restauration")'); await page.waitForSelector('text=Test de restauration —', { timeout: 40000 });
+  check('restore drill from the UI boots the app on the copy and reports success', /L’application démarre sur la copie restaurée/.test(await page.textContent('#view')) && /Réussi/.test(await page.textContent('#view')));
+  await page.screenshot({ path: path.join(shots, '03e-restore-drill.png'), fullPage: true });
   check('verified snapshot created from the UI', /Instantané créé et vérifié/.test(await page.textContent('#toast')) || (await page.textContent('#view')).includes('Vérifié'));
 
   // service edit through the UI (owner can publish)
@@ -100,7 +103,7 @@ try {
   check('TOTP secret displayed for enrollment', /^[A-Z2-7]{32}$/.test(secret));
   await p2.screenshot({ path: path.join(shots, '06-invite-step2.png') });
   await p2.fill('#invite-mfa [name=totp]', '000000'); await p2.click('#invite-mfa button[type=submit]'); await p2.waitForFunction(() => /invalide/.test(document.getElementById('invite-message').textContent));
-  await p2.fill('#invite-mfa [name=totp]', code(secret, { peek: true })); await p2.click('#invite-mfa button[type=submit]'); await p2.waitForSelector('#login-wrap:visible');
+  await p2.fill('#invite-mfa [name=totp]', code(secret)); await p2.click('#invite-mfa button[type=submit]'); await p2.waitForSelector('#login-wrap:visible');
   check('activation succeeds and returns to login', /Compte activé/.test(await p2.textContent('#login-message')));
   await p2.fill('#login [name=email]', 'ui-manager@example.org'); await p2.fill('#login [name=password]', STRONG); await p2.fill('#login [name=totp]', code(secret)); await p2.click('#login button[type=submit]'); await p2.waitForSelector('#app:not([hidden])');
   const mgrNav = await navLabels(p2);
@@ -181,7 +184,7 @@ try {
   await api.put(`/api/admin/ops/requests/${mine}/assignment`, { technician_id: tech.body.technician.id, version: rev.body.request.version });
   const inv = await api.post('/api/admin/staff', { email: 'ui-tech@example.org', display_name: 'Youssef Technicien', role: 'technician', technician_id: tech.body.technician.id });
   const anon = new Client(srv.url), acc = await anon.post('/api/admin/invite/accept', { token: inv.body.invite.token, password: STRONG });
-  await anon.post('/api/admin/invite/activate', { token: inv.body.invite.token, totp: code(acc.body.secret, { peek: true }) });
+  await anon.post('/api/admin/invite/activate', { token: inv.body.invite.token, totp: code(acc.body.secret) });
   const tctx = await browser.newContext({ viewport: { width: 1280, height: 860 } }), tp = await tctx.newPage(); watch(tp, 'technician');
   await login(tp, 'ui-tech@example.org', STRONG, acc.body.secret);
   const techNav = await navLabels(tp);

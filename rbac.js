@@ -102,7 +102,9 @@ const ROUTES = [
   ['PUT', /^\/api\/admin\/brain\/eval\/cases\/[1-9][0-9]{0,8}$/, 'knowledge.edit'],
   ['GET', /^\/api\/admin\/system\/(?:status|errors|backups)$/, 'system.status'],
   ['POST', /^\/api\/admin\/system\/domain-check$/, 'system.status'],
-  ['POST', /^\/api\/admin\/system\/backups$/, 'system.backup']
+  ['POST', /^\/api\/admin\/system\/backups$/, 'system.backup'],
+  ['POST', /^\/api\/admin\/system\/encrypt-legacy$/, 'system.backup'],
+  ['POST', /^\/api\/admin\/system\/backups\/alloservix-\d{8}-\d{6}\.sqlite\/(?:verify-restore|export)$/, 'system.backup']
 ];
 
 // Routes that additionally need a fresh password+TOTP re-verification (see auth.js REAUTH_MS).
@@ -114,6 +116,8 @@ const SENSITIVE = [
   ['PUT', /^\/api\/admin\/settings$/],
   ['POST', /^\/api\/admin\/me\/migrate\/begin$/],
   ['POST', /^\/api\/admin\/system\/backups$/],
+  ['POST', /^\/api\/admin\/system\/encrypt-legacy$/],
+  ['POST', /^\/api\/admin\/system\/backups\/alloservix-\d{8}-\d{6}\.sqlite\/export$/],
   ['POST', /^\/api\/admin\/catalogue\/drafts\/[1-9][0-9]{0,8}\/approve$/],
   ['POST', /^\/api\/admin\/catalogue\/taxonomy\/merge$/]
 ];

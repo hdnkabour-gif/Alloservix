@@ -14,7 +14,7 @@ function jaccard(a, b) { if (!a.size || !b.size) return 0; let inter = 0; for (c
 const techKey = s => norm(s).replace(/ /g, '');
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-function createCatalogue({ db, store, categories }) {
+function createCatalogue({ db, store, categories, otherOwnerActive = () => false }) {
   db.exec(`CREATE TABLE IF NOT EXISTS service_drafts (
     id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL REFERENCES services(slug),
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','pending_review','published','rejected','withdrawn')),
@@ -188,6 +188,8 @@ function createCatalogue({ db, store, categories }) {
     if (d.status !== 'pending_review') throw fail('Seule une proposition en attente peut être approuvée', 409);
     // Four-eyes: only the owner approves, and a non-owner author can never approve their own proposal.
     if (actor.role !== 'owner') throw fail('Seul un propriétaire peut approuver', 403);
+    // Four-eyes: as soon as a second active owner exists, nobody approves their own proposal. A lone owner is never locked out.
+    if (d.author === actor.email && otherOwnerActive(actor.email)) throw fail('Double contrôle : un autre propriétaire doit approuver ce brouillon', 403, { code: 'four_eyes' });
     const patch = JSON.parse(d.patch_json), base = JSON.parse(d.base_json), cur = store.getService(d.slug);
     if (!cur) throw fail('Prestation introuvable', 404);
     const conflicts = Object.keys(patch).filter(k => !same(cur[k], base[k]));

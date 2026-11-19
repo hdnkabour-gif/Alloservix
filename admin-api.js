@@ -4,7 +4,7 @@
 const rbac = require('./rbac');
 const { fail } = require('./auth');
 
-function createAdminApi({ auth, store, helpers, monitor, systemContext }) {
+function createAdminApi({ auth, store, helpers, monitor, systemContext, encryptLegacyData, probeDecrypt = {} }) {
   const { response, bodyJson, checkRate, clientId, originOk, rateScale = 1 } = helpers;
   const technicianExists = id => Boolean(store.db.prepare('SELECT 1 x FROM technicians WHERE id=?').get(id));
   const str = (v, max = 200) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -77,6 +77,9 @@ function createAdminApi({ auth, store, helpers, monitor, systemContext }) {
         backups: monitor.listSnapshots(), domains_configured: monitor.domains() });
       return true;
     }
+    if (p === '/api/admin/system/encrypt-legacy' && method === 'POST') {
+      const r = encryptLegacyData(); store.logAudit('encrypt_legacy', 'data', `${r.inquiries} contact(s), ${r.requests} demande(s)`, me); response(res, 200, r); return true;
+    }
     if (p === '/api/admin/system/errors' && method === 'GET') { response(res, 200, { errors: monitor.recentErrors(Number(new URL(req.url, 'http://x').searchParams.get('limit')) || 50) }); return true; }
     if (p === '/api/admin/system/backups' && method === 'GET') { response(res, 200, { backups: monitor.listSnapshots() }); return true; }
     if (p === '/api/admin/system/backups' && method === 'POST') {
@@ -84,6 +87,18 @@ function createAdminApi({ auth, store, helpers, monitor, systemContext }) {
       const snap = monitor.createSnapshot(me.email, require('node:sqlite').DatabaseSync);
       store.logAudit('backup_snapshot', snap.file, snap.integrity === 'ok' ? 'vérifié' : snap.integrity, me);
       response(res, snap.integrity === 'ok' ? 201 : 500, { backup: snap }); return true;
+    }
+    const bk = /^\/api\/admin\/system\/backups\/(alloservix-\d{8}-\d{6}\.sqlite)\/(verify-restore|export)$/.exec(p);
+    if (bk && method === 'POST') {
+      if (bk[2] === 'verify-restore') {
+        if (!checkRate('restoredrill:' + me.id, 4, 600000)) { response(res, 429, { error: 'Test de restauration lancé trop souvent.' }); return true; }
+        const report = await monitor.verifyRestore(bk[1], me.email, { DatabaseSync: require('node:sqlite').DatabaseSync, probe: { ...probeDecrypt, staff: (blob, id) => auth.canOpenSecret(blob, id), envOwner: auth.envConfigured() } });
+        store.logAudit('restore_drill', bk[1], report.ok ? 'réussi' : 'ÉCHEC', me); response(res, report.ok ? 200 : 500, report); return true;
+      }
+      if (!checkRate('backupexport:' + me.id, 4, 3600000)) { response(res, 429, { error: 'Trop d’exports. Réessayez plus tard.' }); return true; }
+      const b = await bodyJson(req), blob = monitor.exportSnapshot(bk[1], typeof b.passphrase === 'string' ? b.passphrase : '');
+      store.logAudit('backup_export', bk[1], `${blob.length} octets, chiffré par phrase secrète`, me);
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': blob.length, 'Content-Disposition': `attachment; filename="${bk[1]}.enc"`, 'Cache-Control': 'no-store' }); res.end(blob); return true;
     }
     if (p === '/api/admin/system/domain-check' && method === 'POST') {
       if (!checkRate('domaincheck:' + me.id, 6, 600000)) { response(res, 429, { error: 'Contrôle lancé trop souvent. Patientez quelques minutes.' }); return true; }

@@ -14,7 +14,7 @@ async function staff(role,name,extra={}){
   const token=c.body.invite.token,anon=new Client(srv.url);
   const a=await anon.post('/api/admin/invite/accept',{token,password:STRONG});assert.equal(a.status,200,JSON.stringify(a.body));
   assert.match(a.body.otpauth_uri,/^otpauth:\/\/totp\//);
-  const v=await anon.post('/api/admin/invite/activate',{token,totp:code(a.body.secret,{peek:true})});assert.equal(v.status,200,JSON.stringify(v.body));
+  const v=await anon.post('/api/admin/invite/activate',{token,totp:code(a.body.secret)});assert.equal(v.status,200,JSON.stringify(v.body));
   const fresh=(await owner.get('/api/admin/staff')).body.accounts.find(x=>x.id===c.body.account.id);
   return {email,secret:a.body.secret,id:fresh.id,version:fresh.version};
 }
