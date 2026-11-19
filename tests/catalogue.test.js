@@ -5,8 +5,8 @@ test('Unique slugs and static details for every service',()=>{
  for(const s of data.services){assert.ok(s.fr&&s.ar&&s.terms);}
  // Legacy static pages are preserved; V8 added server-side dynamic service detail fallback.
  const source=fs.readFileSync(path.join(root,'server.js'),'utf8');
- assert.match(source,/serviceHtml\(svc,new URL\(req\.url/);
- assert.match(source,/if\(!fs\.existsSync\(dest\)\)/);
+ assert.match(source,/serviceHtml\(svc,requestedLang\)/);
+ assert.match(source,/\['ar','darija','en'\]\.includes\(requestedLang\)/);
 });
 test('Every service has a category and explicit study status',()=>{
  const cats=new Set(data.categories.map(c=>c.id));for(const s of data.services){assert.ok(cats.has(s.category));assert.equal(s.status,'Sur étude');}

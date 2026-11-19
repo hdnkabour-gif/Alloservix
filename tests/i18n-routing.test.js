@@ -22,7 +22,7 @@ test('Language is carried into service detail pages but never interpolated witho
  assert.match(server,/\['fr','ar','darija','en'\]\.includes\(requestedLang\)/);
  assert.match(server,/escapeHtml\(name\)/);
  assert.match(server,/escapeHtml\(description\|\|tx\.subject\)/);
- assert.match(server,/serviceHtml\(svc,new URL\(req\.url/);
+ assert.match(server,/serviceHtml\(svc,requestedLang\)/);
 });
 test('Service details identify unreviewed prices and availability without fabricated claims',()=>{
  assert.match(server,/availability and price not confirmed/);

@@ -1,0 +1,18 @@
+{
+  "name": "ALLOSERVIX",
+  "short_name": "ALLOSERVIX",
+  "description": "Services et solutions technologiques au Maroc",
+  "start_url": "/constellation-v9/index.html",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#0B1F37",
+  "theme_color": "#0B1F37",
+  "icons": [
+    {
+      "src": "/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -29,3 +29,6 @@
 
 /* Service catalogue icons: tangible categories, no fictitious reviews or availability claims. */
 .catalog-item{display:flex;align-items:center;gap:12px}.service-category-icon{display:inline-grid;place-items:center;flex:0 0 39px;width:39px;height:39px;font-size:22px;border-radius:12px;background:linear-gradient(145deg,#eaf0ff,#f6f9ff);border:1px solid #d8e0ff}.catalog-item>span:not(.service-category-icon){min-width:0;flex:1}
+
+/* Verified identity and clear legal notice. */
+.allo-public-footer{max-width:1500px;margin:8px auto 0;padding:20px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px}.allo-public-footer a{color:#2543bd;text-decoration:underline;text-underline-offset:3px}.footer-disclaimer{max-width:360px}@media(max-width:700px){.allo-public-footer{padding-bottom:90px;justify-content:center;text-align:center}}.identity img.mark{object-fit:contain}
