@@ -128,3 +128,29 @@ dialog::backdrop{background:#050b17b0}
   .top-actions .btn{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Command Center visual refinement: denser hierarchy, high contrast, no invented metrics. */
+:root{--radius:16px;--shadow:0 10px 30px rgba(8,28,48,.07)}
+@media(prefers-color-scheme:dark){:root{--bg:#081321;--surface:#0f1f32;--surface-2:#13283f;--line:#28415a;--ink:#ecf5fc;--muted:#aac0d4;--nav:#06111f;--nav-active:#13354e;--brand:#40d4d1;--accent:#1ae0c3;--shadow:0 14px 34px #0108122e}}
+.sidebar{background:linear-gradient(180deg,#081b2e,#061221 62%,#06111f);border-right:1px solid #28415a;scrollbar-width:thin}
+.sidebar .brand,.auth-brand{letter-spacing:-.035em}
+.nav-item{min-height:42px;transition:background .16s,border-color .16s;color:#c6d9e9}
+.nav-item:hover{background:#ffffff17;color:#fff}
+.nav-item.active{background:linear-gradient(110deg,#0b5962,#174365);box-shadow:inset 3px 0 0 #37e9d0;color:#fff}
+.topbar{box-shadow:0 2px 15px #030e160d;backdrop-filter:blur(12px)}
+.topbar h1{font-weight:780;letter-spacing:-.025em}
+.view{max-width:1600px}
+.control-hero{background:linear-gradient(115deg,#0a354d,#075a68 55%,#0a998f);border:1px solid #55ead833;box-shadow:0 14px 32px #05172216;min-height:124px}
+.control-hero h2{font-size:clamp(21px,2vw,28px);letter-spacing:-.035em}
+.kpi{border-top:2px solid var(--accent);transition:border-color .18s,transform .18s}
+.kpi:hover,.card:hover{border-color:color-mix(in srgb,var(--accent) 42%,var(--line))}
+.kpi-value{font-size:clamp(26px,2.4vw,32px);font-variant-numeric:tabular-nums}
+.kpi-label{font-size:12px;letter-spacing:.015em}
+.card{border-radius:18px}
+.table-wrap{max-width:100%;overflow-x:auto}
+table{font-variant-numeric:tabular-nums}
+input,select,textarea{min-height:40px}
+.auth-card{border-top:3px solid var(--accent);box-shadow:0 28px 80px #00000022}
+.btn.primary{font-weight:750}
+@media (max-width:860px){.view{padding:18px 14px 60px}.topbar{min-height:60px}}
+@media (prefers-reduced-motion:reduce){.kpi,.nav-item{transition:none!important}}
