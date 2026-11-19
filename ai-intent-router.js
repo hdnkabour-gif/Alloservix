@@ -5,7 +5,7 @@ const ACTIONS=new Set(['repair','install','choose','build','learn','followup']);
 const QUESTION_IDS=new Set(['context','detail','goal']);
 const PROVIDERS=['openai','gemini','anthropic','deepseek'];
 const breaker=new Map();
-const limits={timeoutMs:4500,maxProviders:4,openMs:60000};
+const limits={timeoutMs:2400,totalMs:7600,maxProviders:4,openMs:60000};
 function configured(env=process.env){return PROVIDERS.filter(p=>Boolean(env[{openai:'OPENAI_API_KEY',gemini:'GEMINI_API_KEY',anthropic:'ANTHROPIC_API_KEY',deepseek:'DEEPSEEK_API_KEY'}[p]]));}
 function enabled(env=process.env){return env.ENABLE_AI==='true'&&configured(env).length>0;}
 function order(env=process.env){const candidates=String(env.AI_PROVIDER_ORDER||'openai,gemini,anthropic,deepseek').split(',').map(x=>x.trim().toLowerCase());return [...new Set(candidates)].filter(x=>PROVIDERS.includes(x)&&configured(env).includes(x));}
@@ -43,9 +43,11 @@ function validate(raw,rows){if(!raw||typeof raw!=='object'||Array.isArray(raw))t
 }
 async function classify(query,rows,{env=process.env,fetchImpl=fetch,clock=Date.now,breakerState=breaker}={}){
  if(!enabled(env))return null;
+ const deadline=clock()+limits.totalMs;
  for(const provider of order(env).slice(0,limits.maxProviders)){
   const circuit=breakerState.get(provider)||{fails:0,until:0};if(circuit.until>clock())continue;
-  const options=payload(provider,query,rows,env);const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),limits.timeoutMs);
+  const remaining=deadline-clock();if(remaining<=0)break;
+  const options=payload(provider,query,rows,env);const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),Math.min(limits.timeoutMs,remaining));
   try{
    const r=await fetchImpl(options.url,{method:'POST',headers:{'Content-Type':'application/json',...options.headers},body:JSON.stringify(options.body),signal:abort.signal});
    if(!r.ok)throw Error('provider non-success');
