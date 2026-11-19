@@ -1,5 +1,6 @@
 'use strict';
-// Deterministic bilingual intent engine. Never treats a keyword match as a confirmed diagnosis or quotation.
+// Deterministic intent engine. Never treats a keyword match as a confirmed diagnosis or quotation.
+const linguistic=require('./language-understanding');
 const clean = value => String(value || '').normalize('NFKD')
   .replace(/[\u0300-\u036f\u064B-\u065F\u0670\u0640]/g, '')
   .replace(/[أإآ]/g, 'ا').replace(/[ى]/g,'ي').replace(/[ة]/g,'ه')
@@ -33,7 +34,7 @@ function phrases(words){return clean(words).split(' ').filter(w=>w&&!genericWord
 function contains(q,part){const w=clean(part);return w && (' '+q+' ').includes(' '+w+' ')}
 function tokenOverlap(q,terms){const txt=' '+clean(terms)+' ';return q.split(' ').filter(w=>w.length>2||w==='tv'||w==='ip').reduce((acc,w)=>acc+(txt.includes(' '+w+' ')?1:0),0)}
 function detect(query){
- const queryText=clean(query),hits=[];
+ const queryText=clean(linguistic.expand(query)),hits=[];
  // Explicit specialist signals take priority over generic words such as installation, conseil or maintenance.
  const signals=[
   ['fire',/(?:incendie|detecteur.*(?:incendie|fumee)|حريق|حرائق|كاشف.*(?:حريق|دخان)|الانذار.*الحريق)/u],
@@ -79,7 +80,7 @@ const specificServices=[
  [/\blinux\b|لينكس/u,['serveur-linux-web','installation-linux-desktop','serveurs-windows-linux']]
 ];
 function rank(query,all,intent){
- const raw=clean(query),tokens=raw.split(' ').filter(w=>w.length>1);
+ const raw=clean(linguistic.expand(query)),tokens=raw.split(' ').filter(w=>w.length>1);
  const group=groups.find(x=>x.id===intent.topic),related=new Set(group?.related||[]);
  if(intent.topic==='advice')related.add('consulting');
  const rules=specificServices.filter(([pattern])=>pattern.test(raw));
@@ -151,6 +152,6 @@ function build(query,all,answers={}){
  const intent=detect(query),matches=rank(query,all,intent),pending=questionsFor(intent,answers),ar=/[\u0600-\u06ff]/.test(query);
  const title=matches.length? (ar?matches[0].ar:matches[0].fr):intent.topicLabel;
  const answer=matches.length?ar?`فهمت أنك كتقلب على ${intent.actionAr} فمجال ${title}. نقدرو نوضحو الخيارات التقنية والخطوات والمعدات الممكنة، ولكن خاص الفريق يتأكد من التنفيذ والثمن بعد دراسة الحاجة.`:`Votre demande concerne ${intent.actionFr.toLowerCase()} : ${title}. Nous pouvons expliquer les options, les étapes et le matériel possible. Faisabilité et prix doivent être confirmés après étude.`:ar?'ما لقيتش تطابق كافي، لكن نقدر نعاونك نفهم الاحتياج ونهيّئ طلب دراسة للفريق، حتى لو غير استفسار صغير.':'Je ne trouve pas de correspondance fiable. Décrivez-nous votre besoin : même une petite question peut être étudiée.';
- return {intent,answer,matches:matches.map(({slug,fr,ar,desc,status,url,score,category})=>({slug,title:fr,arabic:ar,description:desc,status,url,score,category})),questions:pending,equipment:equipment[intent.topic]||equipment.advice,steps,examples:matches.slice(0,4).map(s=>({slug:s.slug,title:ar?s.ar:s.fr})),cost:{kind:'sur-devis',message:ar?'الثمن كيتحدد حسب التشخيص والمعدات ووقت الخدمة؛ نعطيوك اختيارات اقتصادية أو متوسطة أو احترافية بعد الدراسة.':'Prix sur devis selon diagnostic, matériel, licences et intervention ; options économiques, équilibrées et professionnelles à comparer.'},disclaimer:'Les suggestions ne sont ni un diagnostic garanti, ni un engagement contractuel. Toute prestation est sur étude.'};
+ return {input_language:linguistic.language(query),intent,answer,matches:matches.map(({slug,fr,ar,desc,status,url,score,category})=>({slug,title:fr,arabic:ar,description:desc,status,url,score,category})),questions:pending,equipment:equipment[intent.topic]||equipment.advice,steps,examples:matches.slice(0,4).map(s=>({slug:s.slug,title:ar?s.ar:s.fr})),cost:{kind:'sur-devis',message:ar?'الثمن كيتحدد حسب التشخيص والمعدات ووقت الخدمة؛ نعطيوك اختيارات اقتصادية أو متوسطة أو احترافية بعد الدراسة.':'Prix sur devis selon diagnostic, matériel, licences et intervention ; options économiques, équilibrées et professionnelles à comparer.'},disclaimer:'Les suggestions ne sont ni un diagnostic garanti, ni un engagement contractuel. Toute prestation est sur étude.'};
 }
 module.exports={clean,detect,rank,questionsFor,build};
