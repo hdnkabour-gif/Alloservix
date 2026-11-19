@@ -21,6 +21,7 @@ const PERMISSIONS = Object.freeze({
   'settings.write': 'Modifier les informations publiques du site',
   'ai.monitor': 'Surveiller l’assistant et les fournisseurs IA',
   'system.status': 'Voir l’état opérationnel (sans secrets)',
+  'system.backup': 'Créer un instantané vérifié de la base',
   'audit.read': 'Consulter le journal d’audit',
   'staff.read': 'Lister les comptes de l’équipe',
   'staff.manage': 'Inviter, modifier, désactiver, réinitialiser des comptes'
@@ -83,7 +84,10 @@ const ROUTES = [
   ['PUT', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}$/, 'staff.manage'],
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/invite$/, 'staff.manage'],
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/revoke-sessions$/, 'staff.manage'],
-  ['GET', /^\/api\/admin\/rbac$/, 'session']
+  ['GET', /^\/api\/admin\/rbac$/, 'session'],
+  ['GET', /^\/api\/admin\/system\/(?:status|errors|backups)$/, 'system.status'],
+  ['POST', /^\/api\/admin\/system\/domain-check$/, 'system.status'],
+  ['POST', /^\/api\/admin\/system\/backups$/, 'system.backup']
 ];
 
 // Routes that additionally need a fresh password+TOTP re-verification (see auth.js REAUTH_MS).
@@ -93,7 +97,8 @@ const SENSITIVE = [
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/invite$/],
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/revoke-sessions$/],
   ['PUT', /^\/api\/admin\/settings$/],
-  ['POST', /^\/api\/admin\/me\/migrate\/begin$/]
+  ['POST', /^\/api\/admin\/me\/migrate\/begin$/],
+  ['POST', /^\/api\/admin\/system\/backups$/]
 ];
 
 function permissionFor(method, pathname) {

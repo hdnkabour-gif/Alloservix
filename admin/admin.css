@@ -111,6 +111,8 @@ dialog::backdrop{background:#050b17b0}
 .invite-box{background:var(--warn-bg);color:var(--ink);border:1px solid var(--warn);border-radius:12px;padding:14px;margin:12px 0}
 .invite-box code{display:block;word-break:break-all;margin:8px 0}
 
+.bar{height:8px;border-radius:99px;background:var(--surface-2);min-width:120px;overflow:hidden}.bar i{display:block;height:100%;background:var(--brand);border-radius:99px}.bar i.bad{background:var(--bad)}
+
 /* Responsive */
 @media (max-width:1000px){.grid.cols-3,.grid.cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){

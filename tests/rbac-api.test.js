@@ -192,6 +192,32 @@ test('staff listing never exposes hashes, TOTP seeds or invite tokens',async()=>
   assert.ok(l.body.accounts.length>=5);
 });
 
+test('system status: manager reads it, technician cannot, no secret value ever appears, snapshot is owner-only',async()=>{
+  const m=await staff('manager','Sysmgr'),t=await owner.post('/api/admin/ops/technicians',{privacy_consent:true,name:'Sys Tech',city:'Rabat',phone:'+212600000077',years_experience:1,capacity:1,level:'junior',verification_status:'pending',contract_status:'pending',availability_status:'unavailable',onsite_available:true,skills:[]});
+  const tech=await staff('technician','Systech',{technician_id:t.body.technician.id});
+  const mc=await login(m),tc=await login(tech);
+  const st=await mc.get('/api/admin/system/status');assert.equal(st.status,200);
+  const raw=JSON.stringify(st.body);
+  for(const secret of [srv.env.ADMIN_PASSWORD_HASH,srv.env.ADMIN_TOTP_SECRET,srv.env.ALLO_DATA_KEY,srv.owner.password])assert.ok(!raw.includes(secret),'secret leaked in system status');
+  assert.equal(st.body.environment.variables.ALLO_DATA_KEY,true);assert.ok(st.body.storage.tables.services>=100);assert.equal(st.body.storage.integrity,'ok');
+  assert.ok(Array.isArray(st.body.checklist)&&st.body.checklist.some(i=>i.id==='no-backup'));
+  assert.equal((await tc.get('/api/admin/system/status')).status,403);
+  assert.equal((await tc.post('/api/admin/system/domain-check',{})).status,403);
+  assert.equal((await mc.post('/api/admin/system/backups',{})).status,403,'manager cannot snapshot');
+  const snap=await owner.post('/api/admin/system/backups',{});assert.equal(snap.status,201,JSON.stringify(snap.body));assert.equal(snap.body.backup.integrity,'ok');assert.equal(snap.body.backup.present,true);
+  const list=await mc.get('/api/admin/system/backups');assert.equal(list.body.backups[0].file,snap.body.backup.file);
+  assert.ok(!(await mc.get('/api/admin/system/status')).body.checklist.some(i=>i.id==='no-backup'),'checklist updates after a verified snapshot');
+  const audit=await owner.get('/api/admin/audit?action=backup_snapshot');assert.ok(audit.body.audit.length>=1);
+  const dc=await mc.post('/api/admin/system/domain-check',{});assert.equal(dc.status,200);assert.ok(Array.isArray(dc.body.domains));
+});
+
+test('server errors are captured (redacted) and surface in the status page',async()=>{
+  const bad=await fetch(srv.url+'/api/public/assistant',{method:'POST',headers:{'Content-Type':'application/json'},body:'{"question":"x"'});assert.equal(bad.status,400);
+  const st=await owner.get('/api/admin/system/status');
+  assert.ok(st.body.metrics.totals.requests>10);assert.ok(st.body.metrics.totals.s4xx>=1);assert.equal(typeof st.body.errors_last_24h,'number');
+  assert.ok(!JSON.stringify(st.body.errors).match(/@|password/i));
+});
+
 test('owner migrates from Railway bootstrap credentials to in-app credentials; old ones stop working',async()=>{
   const o=new Client(srv.url);assert.equal((await o.login(srv.owner.email,srv.owner.password,srv.owner.secret)).status,200);
   const NEW='Migrated-Passphrase-Of-The-Founder-1!';
