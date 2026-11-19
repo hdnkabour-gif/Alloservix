@@ -77,6 +77,7 @@ fs.stat(dest,(err,stat)=>{if(err||!stat.isFile()||!types[path.extname(dest)])ret
 const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=Date.now();res.on('finish',()=>{try{monitor.recordRequest(req.method,String(req.url||'/').split('?')[0],res.statusCode,Date.now()-t0)}catch{}});try{
   const u=new URL(req.url,'http://localhost'),p=u.pathname,method=req.method;res.setHeader('Cache-Control','no-store');
   if(p==='/health'&&method==='GET')return response(res,200,{ok:true});
+  if(p==='/admin'&&method==='GET'){res.writeHead(308,{'Location':'/admin/','Cache-Control':'no-store'});return res.end();}
   // QR campaigns and domain homepage open the new guide; preserve /index.html legacy.
   if(p==='/'&&method==='GET'){const src=u.searchParams.get('src');const campaign=['flyer','sticker','business-card'].includes(src)?'?src='+src:'';res.writeHead(302,{'Location':'/constellation-v9/index.html'+campaign,'Cache-Control':'no-store'});return res.end();}
   if(p==='/api/public/catalog'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'))).categories,services:store.fullRows().filter(s=>s.published&&s.status!=='Indisponible'),settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled(),image_intent:media.imageEnabled(),audio_transcription:media.audioEnabled(),browser_voice:true}});
