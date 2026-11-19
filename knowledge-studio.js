@@ -63,7 +63,7 @@ function createStudio(db,store,categoryIds){
     JOIN knowledge_concepts c ON c.id=l.concept_id
     WHERE l.review_state='approved' AND c.review_state='approved'`).all();
     for(const c of entries){const vals=[c.fr,c.ar,...JSON.parse(c.aliases)];aliasBySlug.set(c.service_slug,(aliasBySlug.get(c.service_slug)||'')+' '+vals.join(' '))}
-    return services.map(s=>({...s,terms:s.terms+(aliasBySlug.get(s.slug)||'')}));
+    return services.map(s=>({...s,terms:s.terms+(aliasBySlug.get(s.slug)||''),curated_aliases:(aliasBySlug.get(s.slug)||'').trim()}));
   }
   return{createService,concepts,links,createConcept,updateConcept,reviewConcept,createLink,reviewLink,enrich};
 }
