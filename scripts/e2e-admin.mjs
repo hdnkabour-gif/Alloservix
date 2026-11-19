@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
-const { startServer, code } = require('../tests/helpers/server-harness.js');
+const { startServer, code, Client } = require('../tests/helpers/server-harness.js');
 const shots = path.resolve(process.argv[2] || 'e2e-shots');
 fs.mkdirSync(shots, { recursive: true });
 const STRONG = 'Correct-Horse-Battery-Staple-9!';
@@ -160,6 +160,44 @@ try {
   await pr.fill('#reauth-form [name=password]', short.owner.password); await pr.fill('#reauth-form [name=totp]', code(short.owner.secret)); await pr.click('#reauth-form button[type=submit]');
   await pr.waitForSelector('#toast.show'); check('after re-auth the pending action completes automatically', /enregistr/i.test(await pr.textContent('#toast')));
   short.stop();
+
+  // ---------- Linked pages (owner session): dispatch, Knowledge Studio, customer portal ----------
+  const ops = await ctx.newPage(); watch(ops, 'ops'); await ops.goto(srv.url + '/ops-v10/index.html'); await ops.waitForSelector('#app:not([hidden])');
+  check('dispatch page opens for the owner with technician tabs', await ops.isVisible('#show-techs') && await ops.isVisible('#show-new-tech'));
+  await ops.screenshot({ path: path.join(shots, '12-ops-owner.png'), fullPage: true });
+  const bs = await ctx.newPage(); watch(bs, 'brain-studio'); await bs.goto(srv.url + '/brain-studio/index.html'); await bs.waitForSelector('#studio:not([hidden])');
+  check('Knowledge Studio opens and shows catalogue counts', /services/.test(await bs.textContent('#stats')));
+  await bs.screenshot({ path: path.join(shots, '13-brain-studio.png'), fullPage: true });
+  const portal = await ctx.newPage(); watch(portal, 'portal'); await portal.goto(srv.url + '/request-v10/index.html'); await portal.waitForSelector('#request-form');
+  check('customer request portal renders (public page)', (await portal.textContent('#heading')).length > 3);
+  await portal.screenshot({ path: path.join(shots, '14-request-portal.png'), fullPage: true });
+
+  // ---------- Technician role in the real UI ----------
+  const api = new Client(srv.url); await api.login(srv.owner.email, srv.owner.password, srv.owner.secret);
+  const tech = await api.post('/api/admin/ops/technicians', { privacy_consent: true, name: 'Youssef Tech', city: 'Casablanca', phone: '+212600000042', email: 'youssef@example.org', years_experience: 6, capacity: 3, level: 'expert', verification_status: 'approved', contract_status: 'signed', availability_status: 'available', active: true, onsite_available: true, remote_available: true, skills: [{ service_slug: 'cameras-ip', level: 'expert', verified: true }] });
+  const mkReq = async title => (await new Client(srv.url).post('/api/public/requests', { consent: true, type: 'diagnostic', sector: 'company', name: 'Client ' + title, phone: '+212600000009', city: 'Casablanca', title, description: 'Description suffisamment longue pour valider', service_slug: 'cameras-ip', preferred_channel: 'phone' })).body.tracking_code;
+  const mine = await mkReq('Mission du technicien'), other = await mkReq('Mission des autres');
+  const det = (await api.get('/api/admin/ops/requests/' + mine)).body.request, rev = await api.put(`/api/admin/ops/requests/${mine}/status`, { status: 'review', version: det.version, note: 'triage' });
+  await api.put(`/api/admin/ops/requests/${mine}/assignment`, { technician_id: tech.body.technician.id, version: rev.body.request.version });
+  const inv = await api.post('/api/admin/staff', { email: 'ui-tech@example.org', display_name: 'Youssef Technicien', role: 'technician', technician_id: tech.body.technician.id });
+  const anon = new Client(srv.url), acc = await anon.post('/api/admin/invite/accept', { token: inv.body.invite.token, password: STRONG });
+  await anon.post('/api/admin/invite/activate', { token: inv.body.invite.token, totp: code(acc.body.secret, { peek: true }) });
+  const tctx = await browser.newContext({ viewport: { width: 1280, height: 860 } }), tp = await tctx.newPage(); watch(tp, 'technician');
+  await login(tp, 'ui-tech@example.org', STRONG, acc.body.secret);
+  const techNav = await navLabels(tp);
+  check('technician navigation is minimal', techNav.every(l => ['Catalogue', 'Demandes', 'Demandes & techniciens', 'Mon compte'].includes(l)) && techNav.includes('Demandes'), techNav.join(' | '));
+  await tp.waitForSelector('.card:has-text("Mes interventions")'); const jobs = await tp.textContent('#view');
+  check('technician sees only the request assigned to them', jobs.includes(mine) && !jobs.includes(other));
+  await tp.screenshot({ path: path.join(shots, '15-technician-home.png'), fullPage: true });
+  await tp.goto(srv.url + '/admin/#staff'); await tp.waitForSelector('#app:not([hidden])'); await tp.waitForTimeout(500);
+  check('technician cannot reach the team page by URL', !(await tp.textContent('#view')).includes('Matrice des rôles'));
+  await tp.click('#nav .nav-item:has(.nav-label:text-is("Catalogue"))'); await tp.waitForSelector('.service-list .line');
+  check('technician catalogue is read-only (no edit/propose buttons, no governance tabs)', (await tp.$$('.service-list .line button')).length === 0 && (await tp.$$('.tabbar button')).length <= 1);
+  const top = await tctx.newPage(); watch(top, 'tech-ops'); await top.goto(srv.url + '/ops-v10/index.html'); await top.waitForSelector('#app:not([hidden])'); await top.waitForSelector('#request-list .entry');
+  check('dispatch page for a technician hides the technician directory and lists only own job', !(await top.isVisible('#show-techs')) && (await top.$$('#request-list .entry')).length === 1);
+  await top.screenshot({ path: path.join(shots, '16-ops-technician.png'), fullPage: true });
+  const forbidden = await tp.evaluate(async () => { const r = []; for (const p of ['/api/admin/staff', '/api/admin/audit', '/api/admin/control-center', '/api/admin/ops/technicians']) r.push((await fetch(p, { credentials: 'same-origin' })).status); return r; });
+  check('technician API calls to admin areas are all refused (403)', forbidden.every(s => s === 403), forbidden.join(','));
 
   // ---------- Hygiene ----------
   const csp = problems.filter(p => /Content Security Policy|Refused to/i.test(p));
