@@ -5,7 +5,7 @@ const assets=['hero-wide.svg','hero-mobile.svg','service-world.svg','home.svg','
 test('all preview images and icon are present',()=>{for(const x of assets)assert.ok(fs.statSync(path.join(dir,'assets',x)).size>100,x)});
 test('existing private admin is linked but not reimplemented in client',()=>{assert.match(html,/href="\/admin"/);assert.doesNotMatch(js,/ADMIN_PASSWORD|ADMIN_TOTP_SECRET|API_KEY|localStorage\.setItem/)});
 test('forms and visible scenes have unique ids',()=>{const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(x=>x[1]);assert.equal(ids.length,new Set(ids).size)});
-test('only server grounding with external AI disabled',()=>{assert.match(js,/\/api\/public\/assistant/);assert.match(js,/allow_external_ai:false/);assert.match(js,/\/api\/public\/catalog/)});
+test('server-grounded suggestions, AI disabled until consent',()=>{assert.match(js,/\/api\/public\/assistant/);assert.match(js,/allow_external_ai:state\.allowAI/);assert.match(js,/allowAI:false/);assert.match(js,/window\.confirm/);assert.match(js,/state\.allowAI=true/);assert.match(js,/\/api\/public\/catalog/)});
 test('user text goes into textContent and maxlength is bounded',()=>{assert.match(html,/maxlength="500"/);assert.match(js,/\.textContent=state\.request/);assert.doesNotMatch(js,/innerHTML\s*=\s*.*state\.request/)});
 test('mobile navigation, right-to-left and reduced motion are provided',()=>{assert.match(html,/class="mobile-tabs"/);assert.match(js,/document\.documentElement\.dir/);assert.match(css,/prefers-reduced-motion:reduce/)});
 test('home and solutions are separate scenes',()=>{for(const s of ['home','quick','guide','clarify','results','explore','studio'])assert.ok(html.includes(`data-screen="${s}"`))});
