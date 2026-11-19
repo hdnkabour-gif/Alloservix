@@ -43,16 +43,26 @@ try {
   check('owner sees full navigation', ['Centre de contrôle', 'Équipe & accès', 'Journal d’audit', 'Paramètres du site', 'Mon compte', 'Prestations'].every(l => ownerNav.includes(l)), ownerNav.join(' | '));
   await page.waitForSelector('.control-hero'); await page.screenshot({ path: path.join(shots, '02-control-center.png'), fullPage: true });
   check('control center shows real KPI values', (await page.textContent('.kpis')).includes('100'));
-  for (const label of ['Statistiques', 'Sécurité & lancement', 'Prestations', 'Intelligence IA', 'Demandes', 'Contacts reçus', 'Paramètres du site', 'Journal d’audit', 'Équipe & accès', 'Mon compte']) {
+  for (const label of ['Statistiques', 'Sécurité & lancement', 'Prestations', 'Intelligence IA', 'Demandes', 'Contacts reçus', 'Paramètres du site', 'Journal d’audit', 'Équipe & accès', 'État du système', 'Mon compte']) {
     await page.click(`#nav .nav-item:has(.nav-label:text-is("${label}"))`); await page.waitForTimeout(350);
     const err = await page.$('.error-box'); check(`view renders: ${label}`, !err, err ? await err.textContent() : '');
     await page.screenshot({ path: path.join(shots, `03-${label.replace(/[^a-z]/gi, '').toLowerCase()}.png`), fullPage: true });
   }
   check('account page offers Railway→in-app migration for the initial owner', (await page.textContent('#view')).includes('Passer à des identifiants'));
 
+  // system status: checklist, domain check, snapshot
+  await page.click('#nav .nav-item:has(.nav-label:text-is("État du système"))'); await page.waitForSelector('.kpis');
+  check('system page shows an honest checklist', (await page.textContent('#view')).includes('Points à traiter') && (await page.textContent('#view')).includes('Aucun instantané vérifié'));
+  await page.click('button:has-text("Lancer le contrôle")'); await page.waitForSelector('.invite-box', { timeout: 30000 });
+  check('domain check renders a verdict per configured domain', (await page.$$('.invite-box')).length >= 1 && /Certificat valide/.test(await page.textContent('#view')));
+  await page.screenshot({ path: path.join(shots, '03b-system-domain.png'), fullPage: true });
+  await page.click('button:has-text("Créer un instantané")'); await page.waitForSelector('#toast.show'); await page.waitForTimeout(600);
+  check('verified snapshot created from the UI', /Instantané créé et vérifié/.test(await page.textContent('#toast')) || (await page.textContent('#view')).includes('Vérifié'));
+
   // service edit through the UI (owner can publish)
   await page.click('#nav .nav-item:has(.nav-label:text-is("Prestations"))'); await page.waitForSelector('.service-list .line');
   await page.fill('input[type=search]', 'cameras'); await page.click('.service-list .line button:has-text("Modifier")'); await page.waitForSelector('form.form-grid textarea');
+  await page.waitForSelector('#toast:not(.show)', { state: 'attached', timeout: 15000 });
   await page.click('form.form-grid button[type=submit]'); await page.waitForSelector('#toast.show'); check('service saved from the UI', /enregistr/i.test(await page.textContent('#toast')));
 
   // create a manager through the UI

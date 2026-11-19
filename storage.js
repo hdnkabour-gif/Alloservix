@@ -62,4 +62,4 @@ function analytics(days=30){const since=`-${days} days`;
 }
 const cleanup=()=>db.prepare("DELETE FROM events WHERE at < datetime('now','-90 days')").run();
 cleanup();
-module.exports={db,fullRows,getService,listSettings,updateService,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};
+module.exports={db,file,fullRows,getService,listSettings,updateService,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};

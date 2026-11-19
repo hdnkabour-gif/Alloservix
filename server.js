@@ -9,6 +9,7 @@ const operations=require('./operations').createOperations(store.db,{getService:s
 const rbac=require('./rbac');
 const {createAuth,totpValid,passwordValid}=require('./auth');
 const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
+const monitor=require('./monitor').createMonitor({db:store.db,dbFile:store.file,auth});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
 const rate=new Map(),rateScale=Math.max(1,Math.min(100,Number(process.env.ADMIN_RATE_SCALE)||1));
@@ -26,7 +27,12 @@ function safeEvent(body){if(body.consent!==true)return null;const valid=['page_v
 const visitor=safeStr(body.visitor,64);if(!/^[a-f0-9-]{16,64}$/i.test(visitor))return null;
 let target=safeStr(body.target,100).replace(/(?:[\w.+-]+@[\w.-]+\.[a-z]{2,}|\+?\d[\d\s().-]{7,}\d)/gi,'[redacted]');
 return {visitor,kind:body.kind,route:safeStr(body.route,140).replace(/[^\w\-/.]/g,''),target,campaign:safeStr(body.campaign,60).replace(/[^\w\-]/g,''),last_section:safeStr(body.last_section,70).replace(/[^\w\-]/g,''),depth:[0,25,50,75,100].includes(body.depth)?body.depth:0};}
-const adminApi=require('./admin-api').createAdminApi({auth,store,helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
+function systemContext(){const n=q=>store.db.prepare(q).get().n;const configured=aiIntent.configured();return {vaultReady:auth.vaultReady(),ownerMigrated:auth.envConfigured()&&!auth.envLoginAllowed(),envOwnerActive:auth.envConfigured()&&auth.envLoginAllowed(),
+  activeOwners:n("SELECT count(*) n FROM staff_accounts WHERE role='owner' AND status='active'")+(auth.envLoginAllowed()?1:0),activeStaff:n("SELECT count(*) n FROM staff_accounts WHERE status='active'")+(auth.envLoginAllowed()?1:0),
+  contactEmail:Boolean(store.listSettings().contact_email?.trim()),contactWhatsapp:Boolean(store.listSettings().contact_whatsapp?.trim()),providersConfigured:configured.length,
+  flags:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',requests:process.env.ENABLE_REQUESTS==='true'&&operations.isConfigured(),ai:aiIntent.enabled()},
+  counts:{available:n("SELECT count(*) n FROM services WHERE published=1 AND status='Disponible'"),hidden:n('SELECT count(*) n FROM services WHERE published=0'),concept_approved:n("SELECT count(*) n FROM knowledge_concepts WHERE review_state='approved'"),technicians:n('SELECT count(*) n FROM technicians')}}}
+const adminApi=require('./admin-api').createAdminApi({auth,store,monitor,systemContext,helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
 function searchServices(query){return intentEngine.build(query,studio.enrich(store.fullRows())).matches;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function serviceHtml(s){const cats=JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories;
@@ -40,7 +46,7 @@ if(decoded.startsWith('/admin/')&&!/^\/admin\/[a-z0-9-]+\.(?:html|js|css)$/.test
 if(decoded.startsWith('/services/')&&decoded.endsWith('.html')){const slug=path.basename(decoded,'.html'),svc=store.getService(slug);if(!svc||!svc.published||svc.status==='Indisponible')return text(res,404,'Not found');if(!fs.existsSync(dest)){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});return res.end(serviceHtml(svc));}}
 fs.stat(dest,(err,stat)=>{if(err||!stat.isFile()||!types[path.extname(dest)])return text(res,404,'Not found');res.writeHead(200,{'Content-Type':types[path.extname(dest)],'Cache-Control':path.extname(dest)==='.html'?'no-store':'public,max-age=300'});fs.createReadStream(dest).pipe(res)});
 }
-const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
+const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=Date.now();res.on('finish',()=>{try{monitor.recordRequest(req.method,String(req.url||'/').split('?')[0],res.statusCode,Date.now()-t0)}catch{}});try{
   const u=new URL(req.url,'http://localhost'),p=u.pathname,method=req.method;res.setHeader('Cache-Control','no-store');
   if(p==='/health'&&method==='GET')return response(res,200,{ok:true});
   // QR campaigns and domain homepage open the new guide; preserve /index.html legacy.
@@ -233,6 +239,6 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
   if(p.startsWith('/api/'))return response(res,404,{error:'Not found'});
   if(method!=='GET'&&method!=='HEAD')return text(res,405,'Method not allowed');
   return serveFile(req,res,p==='/'?'/index.html':p==='/admin'||p==='/admin/'?'/admin/index.html':p);
-}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,e.status||400,{error:e.message,...(e.code?{code:e.code}:{})});console.error('Server request error',e.message);return response(res,500,{error:'Internal server error'});}});
+}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,e.status||400,{error:e.message,...(e.code?{code:e.code}:{})});console.error('Server request error',e.message);monitor.recordError(req.method,String(req.url||'/'),500,e);return response(res,500,{error:'Internal server error'});}});
 server.listen(port,'0.0.0.0',()=>console.log('ALLOSERVIX V2 listening on',port));
 module.exports={server,totpValid,passwordValid,searchServices};

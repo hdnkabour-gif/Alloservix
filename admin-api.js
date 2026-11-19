@@ -4,7 +4,7 @@
 const rbac = require('./rbac');
 const { fail } = require('./auth');
 
-function createAdminApi({ auth, store, helpers }) {
+function createAdminApi({ auth, store, helpers, monitor, systemContext }) {
   const { response, bodyJson, checkRate, clientId, originOk, rateScale = 1 } = helpers;
   const technicianExists = id => Boolean(store.db.prepare('SELECT 1 x FROM technicians WHERE id=?').get(id));
   const str = (v, max = 200) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -70,6 +70,24 @@ function createAdminApi({ auth, store, helpers }) {
       const r = auth.confirmOwnerMigration(me, str(b.totp, 10));
       response(res, 200, { ...r, message: 'Les identifiants Railway ne fonctionnent plus. Reconnectez-vous avec le nouveau mot de passe et la nouvelle application d’authentification.' });
       return true;
+    }
+    if (p === '/api/admin/system/status' && method === 'GET') {
+      response(res, 200, { generated_at: new Date().toISOString(), runtime: monitor.runtime(), storage: monitor.storage(), metrics: monitor.metrics(), environment: monitor.environment(),
+        checklist: monitor.checklist(systemContext()), errors: monitor.recentErrors(20), errors_last_hour: monitor.errorsSince(3600000), errors_last_24h: monitor.errorsSince(86400000),
+        backups: monitor.listSnapshots(), domains_configured: monitor.domains() });
+      return true;
+    }
+    if (p === '/api/admin/system/errors' && method === 'GET') { response(res, 200, { errors: monitor.recentErrors(Number(new URL(req.url, 'http://x').searchParams.get('limit')) || 50) }); return true; }
+    if (p === '/api/admin/system/backups' && method === 'GET') { response(res, 200, { backups: monitor.listSnapshots() }); return true; }
+    if (p === '/api/admin/system/backups' && method === 'POST') {
+      if (!checkRate('backup:' + me.id, 4, 3600000)) { response(res, 429, { error: 'Trop d’instantanés. Réessayez plus tard.' }); return true; }
+      const snap = monitor.createSnapshot(me.email, require('node:sqlite').DatabaseSync);
+      store.logAudit('backup_snapshot', snap.file, snap.integrity === 'ok' ? 'vérifié' : snap.integrity, me);
+      response(res, snap.integrity === 'ok' ? 201 : 500, { backup: snap }); return true;
+    }
+    if (p === '/api/admin/system/domain-check' && method === 'POST') {
+      if (!checkRate('domaincheck:' + me.id, 6, 600000)) { response(res, 429, { error: 'Contrôle lancé trop souvent. Patientez quelques minutes.' }); return true; }
+      response(res, 200, await monitor.domainCheck()); return true;
     }
     if (p === '/api/admin/audit/verify' && method === 'GET') { response(res, 200, store.verifyAudit()); return true; }
     if (p === '/api/admin/staff' && method === 'GET') {
