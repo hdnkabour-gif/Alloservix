@@ -62,6 +62,7 @@ cloudButton.addEventListener('click',async()=>{
  rec.start();tell(msg('audioRecording'));setTimeout(()=>{if(rec.state==='recording')rec.stop()},10000);
  }catch(e){stream?.getTracks().forEach(t=>t.stop());recording=false;cloudButton.disabled=false;tell(msg('micDenied'),true)}
 });
-document.addEventListener('allo:language',()=>{if(lang()==='darija')locale.value='ar-MA';else if(lang()==='ar')locale.value='ar-SA';else if(lang()==='en')locale.value='en-US';else locale.value='fr-FR'});
+const syncLocale=()=>{if(lang()==='darija')locale.value='ar-MA';else if(lang()==='ar')locale.value='ar-SA';else if(lang()==='en')locale.value='en-US';else locale.value='fr-FR'};
+document.addEventListener('allo:language',syncLocale);syncLocale();
 load();
 })();
