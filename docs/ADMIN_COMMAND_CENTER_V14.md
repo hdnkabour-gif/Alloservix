@@ -24,8 +24,7 @@ All dashboard aggregates are read from the application's existing SQLite data th
 - Railway and Cloudflare links with *explicit unverified TLS status*: app runtime cannot know the edge certificate state without the provider connectors.
 
 ### Not implemented — must not be presented as ready
-- Multi-user staff accounts, RBAC, per-action permission approvals, invitation/recovery flows.
-- Password/TOTP rotation inside the website itself; the bootstrap uses Railway `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_TOTP_SECRET`.
+- ~~Multi-user staff accounts, RBAC, invitation flows, password/TOTP rotation~~ — **implemented in V15**, see `docs/ADMIN_ACCESS_CONTROL_V15.md`. Still missing: e-mail delivery of invitations, recovery codes, per-action approval workflows.
 - Domain SSL and Cloudflare administration inside the site.
 - Verified backup/restore dashboard, billing/payments, inventory or customer CRM.
 - Production monitoring alerts, real-time incidents, long-term anonymous usage graph and GDPR/CNDP governance work.

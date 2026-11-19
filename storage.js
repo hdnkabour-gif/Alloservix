@@ -34,7 +34,19 @@ function updateService(slug, updates){const current=getService(slug);if(!current
   return getService(slug);
 }
 const updateSetting=(key,value)=>{if(!['site_title','site_subtitle','contact_whatsapp','contact_email','contact_location'].includes(key))throw new Error('Clé non autorisée');if(typeof value!=='string'||value.length>180)throw new Error('Valeur non valide');db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,value)};
-const logAudit=(action,resource,details='')=>db.prepare('INSERT INTO audit(actor,action,resource,details) VALUES(?,?,?,?)').run('admin',action,resource,String(details).slice(0,300));
+function ensureColumn(table,col,def){if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name===col))db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`)}
+for(const [col,def] of [['actor_id',"TEXT NOT NULL DEFAULT ''"],['actor_role',"TEXT NOT NULL DEFAULT ''"],['prev_hash',"TEXT NOT NULL DEFAULT ''"],['row_hash',"TEXT NOT NULL DEFAULT ''"]])ensureColumn('audit',col,def);
+const sha256=x=>require('node:crypto').createHash('sha256').update(x).digest('hex');
+const auditDigest=(prev,r)=>sha256([prev,r.at,r.actor,r.actor_id,r.actor_role,r.action,r.resource,r.details].join('\u241f'));
+// Append-only audit with a hash chain: editing or deleting an old row is detectable (verifyAudit).
+// actor: optional {email,id,role}; legacy callers keep the default label 'admin'.
+function logAudit(action,resource,details='',actor=null){
+  const row={at:new Date().toISOString().slice(0,19).replace('T',' '),actor:String(actor?.email||actor?.label||'admin').slice(0,160),actor_id:String(actor?.id||'').slice(0,64),actor_role:String(actor?.role||'').slice(0,20),action:String(action).slice(0,80),resource:String(resource).slice(0,160),details:String(details).slice(0,300)};
+  const prev=db.prepare("SELECT row_hash FROM audit WHERE row_hash<>'' ORDER BY id DESC LIMIT 1").get()?.row_hash||'GENESIS';
+  db.prepare('INSERT INTO audit(at,actor,actor_id,actor_role,action,resource,details,prev_hash,row_hash) VALUES(?,?,?,?,?,?,?,?,?)').run(row.at,row.actor,row.actor_id,row.actor_role,row.action,row.resource,row.details,prev,auditDigest(prev,row));
+}
+function verifyAudit(){let prev='GENESIS',checked=0;for(const r of db.prepare("SELECT * FROM audit WHERE row_hash<>'' ORDER BY id").all()){if(r.prev_hash!==prev||auditDigest(r.prev_hash,r)!==r.row_hash)return {ok:false,checked,first_bad_id:r.id};prev=r.row_hash;checked++}return {ok:true,checked,legacy_unchained:db.prepare("SELECT count(*) n FROM audit WHERE row_hash=''").get().n}}
+function listAudit({limit=80,offset=0,action='',actor=''}={}){const lim=Math.max(1,Math.min(500,Math.floor(Number(limit))||80)),off=Math.max(0,Math.floor(Number(offset))||0);const where=[],args=[];if(action){where.push('action=?');args.push(String(action).slice(0,80))}if(actor){where.push('actor=?');args.push(String(actor).slice(0,160))}return db.prepare(`SELECT id,at,actor,actor_role,action,resource,details FROM audit ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY id DESC LIMIT ? OFFSET ?`).all(...args,lim,off)}
 function recordEvent(ev){db.prepare('INSERT INTO events(visitor,kind,route,target,campaign,last_section,depth) VALUES(?,?,?,?,?,?,?)').run(ev.visitor,ev.kind,ev.route,ev.target,ev.campaign,ev.last_section,ev.depth);}
 function analytics(days=30){const since=`-${days} days`;
   const n=db.prepare("SELECT count(*) as n FROM events WHERE at >= datetime('now',?)").get(since).n;
@@ -50,4 +62,4 @@ function analytics(days=30){const since=`-${days} days`;
 }
 const cleanup=()=>db.prepare("DELETE FROM events WHERE at < datetime('now','-90 days')").run();
 cleanup();
-module.exports={db,fullRows,getService,listSettings,updateService,updateSetting,logAudit,recordEvent,analytics,cleanup};
+module.exports={db,fullRows,getService,listSettings,updateService,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};
