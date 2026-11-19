@@ -175,6 +175,45 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
       const b=await bodyJson(req),tech=operations.saveTechnician(b,slug=>!!store.getService(slug),p.split('/').at(-1));
       store.logAudit('technician_updated',tech.id);return response(res,200,{technician:tech});
     }
+    // Private unified command center: aggregate business data only; no tokens, PII or deployment secrets.
+    if(p==='/api/admin/control-center'&&method==='GET'){
+      const sql=store.db;
+      const count=query=>sql.prepare(query).get().n;
+      const serviceRows=sql.prepare(`SELECT category,COUNT(*) total,SUM(CASE WHEN published=1 THEN 1 ELSE 0 END) published,
+          SUM(CASE WHEN status='Disponible' AND published=1 THEN 1 ELSE 0 END) available
+          FROM services GROUP BY category ORDER BY total DESC,category`).all();
+      const total=count('SELECT count(*) n FROM services');
+      const publicServices=count("SELECT count(*) n FROM services WHERE published=1 AND status!='Indisponible'");
+      const available=count("SELECT count(*) n FROM services WHERE published=1 AND status='Disponible'");
+      const inStudy=count("SELECT count(*) n FROM services WHERE status='Sur étude'");
+      const hidden=count("SELECT count(*) n FROM services WHERE published=0");
+      const concepts=count('SELECT count(*) n FROM knowledge_concepts'),conceptApproved=count("SELECT count(*) n FROM knowledge_concepts WHERE review_state='approved'");
+      const links=count('SELECT count(*) n FROM knowledge_links'),linkApproved=count("SELECT count(*) n FROM knowledge_links WHERE review_state='approved'");
+      const requests=count('SELECT count(*) n FROM service_requests');
+      const unresolved=count("SELECT count(*) n FROM service_requests WHERE status NOT IN ('completed','cancelled')");
+      const technicians=count('SELECT count(*) n FROM technicians'),activeTechs=count("SELECT count(*) n FROM technicians WHERE active=1 AND verification_status='approved' AND contract_status='signed'");
+      const inquiryCount=count('SELECT count(*) n FROM inquiries');
+      const hasSetting=key=>Boolean(store.listSettings()?.[key]?.trim());
+      const configuredAI=aiIntent.configured();
+      const day=new Date().toISOString().slice(0,10),used=sql.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n;
+      const daily=Number(process.env.AI_DAILY_LIMIT||40),limit=Number.isFinite(daily)?Math.max(0,Math.min(500,Math.floor(daily))):40;
+      const flags={analytics:process.env.ENABLE_ANALYTICS==='true',
+        inquiries:process.env.ENABLE_INQUIRIES==='true',requests:process.env.ENABLE_REQUESTS==='true'&&operations.isConfigured(),
+        text_ai:aiIntent.enabled(),image_ai:media.imageEnabled(),audio_ai:media.audioEnabled()};
+      return response(res,200,{
+        generated_at:new Date().toISOString(),
+        catalogue:{total,published:publicServices,available,in_study:inStudy,hidden,categories:serviceRows},
+        knowledge:{concepts,concept_approved:conceptApproved,links,link_approved:linkApproved},
+        work:{requests,unresolved,technicians,active_technicians:activeTechs,inquiries:inquiryCount},
+        intelligence:{configured_providers:['openai','gemini','anthropic','deepseek'].map(name=>({name,key_configured:configuredAI.includes(name)})),
+          usage:{day,used,daily_limit:limit},features:{text:flags.text_ai,image:flags.image_ai,audio:flags.audio_ai}},
+        website:{public_contact_email_set:hasSetting('contact_email'),public_whatsapp_set:hasSetting('contact_whatsapp'),
+          analytics_enabled:flags.analytics,inquiries_enabled:flags.inquiries,requests_enabled:flags.requests},
+        security:{mfa_required:true,admin_configured:adminConfigured(),encrypted_requests_ready:operations.isConfigured(),session_hours:8,
+          multiple_admin_accounts:false,domain_ssl:'check_external_railway'},
+        links:{public_site:'/constellation-v9/index.html',catalogue:'/admin/',operations:'/ops-v10/index.html',knowledge:'/brain-studio/index.html',requests:'/request-v10/index.html'}
+      });
+    }
     if(p==='/api/admin/overview'&&method==='GET')return response(res,200,{analytics:store.analytics(30),total_services:store.fullRows().length,published_services:store.fullRows().filter(x=>x.published).length,inquiries:store.db.prepare('SELECT count(*) n FROM inquiries').get().n,settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});
     if(p==='/api/admin/services'&&method==='GET')return response(res,200,{services:store.fullRows()});
     if(p.startsWith('/api/admin/services/')&&method==='PUT'){const slug=p.split('/').at(-1),body=await bodyJson(req);const result=store.updateService(slug,body);if(!result)return response(res,404,{error:'Service introuvable'});store.logAudit('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
