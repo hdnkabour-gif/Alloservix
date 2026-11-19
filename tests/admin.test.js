@@ -7,7 +7,7 @@ function otp(){const alpha='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let v=0,b=0,bytes=
 async function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer().listen(0,'127.0.0.1',()=>{const port=s.address().port;s.close(()=>resolve(port))});s.on('error',reject)})}
 test('Security, API, login MFA, CSRF, editing, analytics and assistant',async t=>{
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'allo-v2-')),port=await freePort(),url='http://127.0.0.1:'+port;
-const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dir,NODE_ENV:'test',ADMIN_EMAIL:'administrator@example.org',ADMIN_PASSWORD_HASH:salt.toString('hex')+':'+digest.toString('hex'),ADMIN_TOTP_SECRET:secret,ENABLE_ANALYTICS:'true'},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dir,NODE_ENV:'test',ADMIN_EMAIL:'administrator@example.org',ADMIN_PASSWORD_HASH:salt.toString('hex')+':'+digest.toString('hex'),ADMIN_TOTP_SECRET:secret,ENABLE_ANALYTICS:'true',OPENAI_API_KEY:'',GEMINI_API_KEY:'',ANTHROPIC_API_KEY:'',DEEPSEEK_API_KEY:'',ENABLE_AI:'false'},stdio:['ignore','pipe','pipe']});
 let errs='';child.stderr.on('data',d=>{errs+=d.toString()});t.after(()=>{child.kill();fs.rmSync(dir,{recursive:true,force:true})});
 let ready=false;for(let i=0;i<80;i++){if(child.exitCode!==null)break;try{const r=await fetch(url+'/health');if(r.ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,70))}assert.ok(ready,'server never started: '+errs);
 const j=async(p,method='GET',data,headers={})=>fetch(url+p,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...headers},body:data?JSON.stringify(data):undefined});

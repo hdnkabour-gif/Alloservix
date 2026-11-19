@@ -6,22 +6,19 @@ const aiIntent=require('./ai-intent-router');
 const media=require('./media-understanding');
 const studio=require('./knowledge-studio').createStudio(store.db,store,JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories.map(c=>c.id));
 const operations=require('./operations').createOperations(store.db,{getService:store.getService});
+const rbac=require('./rbac');
+const {createAuth,totpValid,passwordValid}=require('./auth');
+const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
-const sessions=new Map(),rate=new Map();
+const rate=new Map(),rateScale=Math.max(1,Math.min(100,Number(process.env.ADMIN_RATE_SCALE)||1));
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const secureEqual=(a,b)=>{const aa=Buffer.from(String(a)),bb=Buffer.from(String(b));return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb)};
 const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/[ى]/g,'ي').replace(/[ة]/g,'ه').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
-function decodeBase32(s){const alpha='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let bits=0,v=0,out=[];for(const c of String(s||'').replace(/\s|=/g,'').toUpperCase()){const d=alpha.indexOf(c);if(d<0)throw Error('TOTP invalid');v=(v<<5)|d;bits+=5;if(bits>=8){bits-=8;out.push((v>>bits)&255);v&=(1<<bits)-1;}}return Buffer.from(out)}
-function totpValid(code,secret,now=Date.now()){if(!/^\d{6}$/.test(String(code||'')))return false;let key;try{key=decodeBase32(secret);if(key.length<10)return false}catch{return false};for(let i=-1;i<=1;i++){const msg=Buffer.alloc(8);msg.writeBigUInt64BE(BigInt(Math.floor(now/30000)+i));const digest=crypto.createHmac('sha1',key).update(msg).digest();const off=digest.at(-1)&15;const otp=String((digest.readUInt32BE(off)&0x7fffffff)%1000000).padStart(6,'0');if(secureEqual(code,otp))return true;}return false}
-function passwordValid(entered,stored){try{const [saltHex,keyHex]=String(stored||'').split(':');if(!/^[0-9a-f]{32,128}$/i.test(saltHex)||!/^[0-9a-f]{128}$/i.test(keyHex))return false;const test=crypto.scryptSync(entered,Buffer.from(saltHex,'hex'),64,{N:16384,r:8,p:1});return crypto.timingSafeEqual(test,Buffer.from(keyHex,'hex'));}catch{return false}}
-const adminConfigured=()=>!!(process.env.ADMIN_EMAIL&&process.env.ADMIN_PASSWORD_HASH&&process.env.ADMIN_TOTP_SECRET);
 const response=(res,status,obj)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
 const text=(res,status,body)=>{res.writeHead(status,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});res.end(body)};
 async function bodyJson(req,maxBytes=16000){const chunks=[];let total=0;const declared=Number(req.headers['content-length']||0);if(declared>maxBytes)throw Error('Body too large');for await(const chunk of req){total+=chunk.length;if(total>maxBytes)throw Error('Body too large');chunks.push(chunk)}try{return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}')}catch{throw Error('Invalid JSON')}}
 function originOk(req){const origin=req.headers.origin;if(!origin)return true;try{return new URL(origin).host===req.headers.host}catch{return false}}
-function grantSession(req,res){const token=crypto.randomBytes(32).toString('hex'),csrf=crypto.randomBytes(24).toString('hex'),now=Date.now();sessions.set(hash(token),{csrf,created:now,last:now});res.setHeader('Set-Cookie',`allo_admin=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf}
-function session(req){const cookie=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('allo_admin='));if(!cookie)return null;const token=cookie.split('=').slice(1).join('=');if(!/^[0-9a-f]{64}$/.test(token))return null;const key=hash(token),s=sessions.get(key),now=Date.now();if(!s)return null;if(now-s.created>8*3600000||now-s.last>30*60000){sessions.delete(key);return null}s.last=now;return {key,...s}}
 function checkRate(bucket,lim,ms){const now=Date.now(),v=rate.get(bucket)||{at:now,n:0};if(now-v.at>ms){v.at=now;v.n=0}v.n++;rate.set(bucket,v);if(rate.size>10000){for(const [k,x] of rate){if(now-x.at>86400000)rate.delete(k)}}return v.n<=lim}
 function clientId(req){return String(req.socket.remoteAddress||'unknown').slice(0,80)}
 function safeStr(s,max=120){return typeof s==='string'?s.trim().slice(0,max):''}
@@ -29,6 +26,7 @@ function safeEvent(body){if(body.consent!==true)return null;const valid=['page_v
 const visitor=safeStr(body.visitor,64);if(!/^[a-f0-9-]{16,64}$/i.test(visitor))return null;
 let target=safeStr(body.target,100).replace(/(?:[\w.+-]+@[\w.-]+\.[a-z]{2,}|\+?\d[\d\s().-]{7,}\d)/gi,'[redacted]');
 return {visitor,kind:body.kind,route:safeStr(body.route,140).replace(/[^\w\-/.]/g,''),target,campaign:safeStr(body.campaign,60).replace(/[^\w\-]/g,''),last_section:safeStr(body.last_section,70).replace(/[^\w\-]/g,''),depth:[0,25,50,75,100].includes(body.depth)?body.depth:0};}
+const adminApi=require('./admin-api').createAdminApi({auth,store,helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
 function searchServices(query){return intentEngine.build(query,studio.enrich(store.fullRows())).matches;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function serviceHtml(s){const cats=JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories;
@@ -38,7 +36,7 @@ function serviceHtml(s){const cats=JSON.parse(fs.readFileSync(path.join(root,'as
 }
 function secureHeaders(res,req){res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');res.setHeader('Permissions-Policy','camera=(), microphone=(self), geolocation=()');res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");if(production&&req.headers['x-forwarded-proto']==='https')res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');}
 function serveFile(req,res,p){let decoded;try{decoded=decodeURIComponent(p)}catch{return text(res,400,'Bad URL')};if(decoded.includes('\0')||decoded.includes('\\'))return text(res,400,'Invalid');if(/^\/[^/]+\.(?:js|json|py)$/.test(decoded))return text(res,404,'Not found');const dest=path.resolve(root,'.'+decoded);if(!dest.startsWith(root+path.sep))return text(res,403,'Forbidden');if(/(^|\/)(?:\.data|scripts|tests|node_modules)(\/|$)/.test(decoded)||decoded.startsWith('/.')||dest.endsWith('/server.js')||dest.endsWith('/storage.js')||dest.endsWith('/intent-engine.js')||dest.endsWith('/build.py')||dest.endsWith('/data.py')||dest.endsWith('/package.json')||dest.endsWith('/Dockerfile')||dest.endsWith('/README.md'))return text(res,404,'Not found');
-if(decoded.startsWith('/admin/')&&!decoded.startsWith('/admin/index.html')&&!decoded.startsWith('/admin/admin.js')&&!decoded.startsWith('/admin/admin.css'))return text(res,404,'Not found');
+if(decoded.startsWith('/admin/')&&!/^\/admin\/[a-z0-9-]+\.(?:html|js|css)$/.test(decoded))return text(res,404,'Not found');
 if(decoded.startsWith('/services/')&&decoded.endsWith('.html')){const slug=path.basename(decoded,'.html'),svc=store.getService(slug);if(!svc||!svc.published||svc.status==='Indisponible')return text(res,404,'Not found');if(!fs.existsSync(dest)){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});return res.end(serviceHtml(svc));}}
 fs.stat(dest,(err,stat)=>{if(err||!stat.isFile()||!types[path.extname(dest)])return text(res,404,'Not found');res.writeHead(200,{'Content-Type':types[path.extname(dest)],'Cache-Control':path.extname(dest)==='.html'?'no-store':'public,max-age=300'});fs.createReadStream(dest).pipe(res)});
 }
@@ -48,7 +46,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
   // QR campaigns and domain homepage open the new guide; preserve /index.html legacy.
   if(p==='/'&&method==='GET'){const src=u.searchParams.get('src');const campaign=['flyer','sticker','business-card'].includes(src)?'?src='+src:'';res.writeHead(302,{'Location':'/constellation-v9/index.html'+campaign,'Cache-Control':'no-store'});return res.end();}
   if(p==='/api/public/catalog'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'))).categories,services:store.fullRows().filter(s=>s.published&&s.status!=='Indisponible'),settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled(),image_intent:media.imageEnabled(),audio_transcription:media.audioEnabled(),browser_voice:true}});
-  if(p.startsWith('/api/public/service/')&&method==='GET'){const s=store.getService(p.split('/').at(-1));return s&&s.published&&s.status!=='Indisponible'?response(res,200,s):response(res,404,{error:'Not found'});}
+  if(p.startsWith('/api/public/service/')&&method==='GET'){let slug;try{slug=decodeURIComponent(p.split('/').at(-1))}catch{return response(res,400,{error:'Identifiant de service invalide'})}const s=store.getService(slug);return s&&s.published&&s.status!=='Indisponible'?response(res,200,s):response(res,404,{error:'Not found'});}
   if((p==='/api/public/assistant'||p==='/api/public/diagnose')&&method==='POST'){
     if(!checkRate('assist:'+clientId(req),40,3600000))return response(res,429,{error:'Trop de demandes'});
     const body=await bodyJson(req),query=safeStr(body.question,500);if(query.length<2)return response(res,400,{error:'Question trop courte'});
@@ -105,34 +103,41 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
   }
   if(p==='/api/public/inquiry'&&method==='POST'){if(process.env.ENABLE_INQUIRIES!=='true')return response(res,503,{error:'Collecte de demandes non activée'});if(!checkRate('lead:'+clientId(req),6,3600000))return response(res,429,{error:'Trop de demandes'});const b=await bodyJson(req);if(b.consent!==true)return response(res,400,{error:'Consentement requis'});const name=safeStr(b.name,100),message=safeStr(b.message,3000),email=safeStr(b.email,150),phone=safeStr(b.phone,40),topic=safeStr(b.topic,100);if(!name||message.length<12)return response(res,400,{error:'Nom et description requis'});store.db.prepare('INSERT INTO inquiries(name,email,phone,topic,message) VALUES(?,?,?,?,?)').run(name,email,phone,topic,message);return response(res,201,{ok:true});}
   // Security: no administration endpoint is accessible without authenticated session.
-  if(p==='/api/admin/login'&&method==='POST'){if(!originOk(req))return response(res,403,{error:'Origin rejected'});if(!adminConfigured())return response(res,503,{error:'Administration non configurée'});const b=await bodyJson(req),email=safeStr(b.email,160).toLowerCase(),pass=typeof b.password==='string'?b.password:'',otp=safeStr(b.totp,10);if(!checkRate('login:'+clientId(req),7,900000)||!checkRate('account:'+email,15,900000))return response(res,429,{error:'Trop de tentatives. Réessayez plus tard.'});const okay=email===process.env.ADMIN_EMAIL.toLowerCase()&&passwordValid(pass,process.env.ADMIN_PASSWORD_HASH)&&totpValid(otp,process.env.ADMIN_TOTP_SECRET);if(!okay)return response(res,401,{error:'Identifiants ou code de vérification invalides'});const csrf=grantSession(req,res);store.logAudit('login','session');return response(res,200,{authenticated:true,csrf});}
-  if(p==='/api/admin/session'&&method==='GET'){const s=session(req);return response(res,200,{authenticated:!!s,csrf:s?.csrf||null,configured:adminConfigured()});}
-  if(p.startsWith('/api/admin/')){const s=session(req);if(!s)return response(res,401,{error:'Unauthorized'});if(method!=='GET'&&(!originOk(req)||!secureEqual(req.headers['x-csrf-token']||'',s.csrf)))return response(res,403,{error:'CSRF rejected'});
-    if(p==='/api/admin/logout'&&method==='POST'){sessions.delete(s.key);res.setHeader('Set-Cookie',`allo_admin=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${production?'; Secure':''}`);return response(res,200,{ok:true});}
+  if(p==='/api/admin/login'&&method==='POST'){if(!originOk(req))return response(res,403,{error:'Origin rejected'});if(!auth.anyLoginConfigured())return response(res,503,{error:'Administration non configurée'});const b=await bodyJson(req),email=safeStr(b.email,160).toLowerCase(),pass=typeof b.password==='string'?b.password:'',otp=safeStr(b.totp,10);if(!checkRate('login:'+clientId(req),7*rateScale,900000)||!checkRate('account:'+email,15,900000))return response(res,429,{error:'Trop de tentatives. Réessayez plus tard.'});const {principal}=auth.authenticate(email,pass,otp);const csrf=auth.startSession(principal,res,production);store.logAudit('login','session','',principal);return response(res,200,{authenticated:true,csrf,...auth.publicSession({principal,reauthAt:Date.now()})});}
+  if(p==='/api/admin/session'&&method==='GET'){const s=auth.readSession(req);return response(res,200,{authenticated:!!s,csrf:s?.csrf||null,configured:auth.anyLoginConfigured(),...(s?auth.publicSession(s):{})});}
+  if(await adminApi.handlePublic(req,res,p,method))return;
+  if(p.startsWith('/api/admin/')){const s=auth.readSession(req);if(!s)return response(res,401,{error:'Unauthorized'});if(method!=='GET'&&(!originOk(req)||!secureEqual(req.headers['x-csrf-token']||'',s.csrf)))return response(res,403,{error:'CSRF rejected'});
+    // Default deny: every admin route must be declared in rbac.js with the permission it needs.
+    const need=rbac.permissionFor(method,p);if(need===null)return response(res,403,{error:'Route non autorisée',code:'forbidden'});
+    if(need!=='session'&&!rbac.can(s.principal.role,need))return response(res,403,{error:'Permission refusée',code:'forbidden',required:need});
+    if(rbac.needsReauth(method,p)&&!auth.isFresh(s))return response(res,403,{error:'Revérification d’identité requise (mot de passe + code)',code:'reauth_required'});
+    const actor=s.principal,A=(action,resource,details)=>store.logAudit(action,resource,details,actor);
+    if(await adminApi.handleAuthed(req,res,p,method,s))return;
+    if(p==='/api/admin/logout'&&method==='POST'){auth.endSession(s.key);A('logout','session');res.setHeader('Set-Cookie',`allo_admin=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${production?'; Secure':''}`);return response(res,200,{ok:true});}
     // Knowledge Studio V11. Only authenticated MFA admin, writes gated by CSRF above.
     if(p==='/api/admin/studio'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories,concepts:studio.concepts(),links:studio.links()});
     if(p==='/api/admin/studio/services'&&method==='POST'){
       const b=await bodyJson(req),created=studio.createService(b);
-      store.logAudit('studio_service_draft',created.slug);return response(res,201,{service:created});
+      A('studio_service_draft',created.slug);return response(res,201,{service:created});
     }
     if(p==='/api/admin/studio/concepts'&&method==='POST'){
       const b=await bodyJson(req),created=studio.createConcept(b);
-      store.logAudit('studio_concept_draft',String(created.id));return response(res,201,{concept:created});
+      A('studio_concept_draft',String(created.id));return response(res,201,{concept:created});
     }
     if(p==='/api/admin/studio/links'&&method==='POST'){
       const b=await bodyJson(req),created=studio.createLink(b);
-      store.logAudit('studio_link_draft',String(created.id));return response(res,201,{link:created});
+      A('studio_link_draft',String(created.id));return response(res,201,{link:created});
     }
     const studioRoute=/^\/api\/admin\/studio\/(concepts|links)\/([1-9][0-9]{0,8})(\/review)?$/.exec(p);
     if(studioRoute&&method==='PUT'){
       const [,kind,idString,review]=studioRoute,id=Number(idString),b=await bodyJson(req);
       if(kind==='concepts'&&!review){
-        const result=studio.updateConcept(id,b);store.logAudit('studio_concept_update',String(id));
+        const result=studio.updateConcept(id,b);A('studio_concept_update',String(id));
         return response(res,200,{concept:result});
       }
       if(review){
         const result=kind==='concepts'?studio.reviewConcept(id,b.review_state):studio.reviewLink(id,b.review_state);
-        store.logAudit('studio_'+kind+'_review',String(id),String(b.review_state));
+        A('studio_'+kind+'_review',String(id),String(b.review_state));
         return response(res,200,{result});
       }
     }
@@ -145,35 +150,38 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
         note:'Only configuration presence is reported. API secrets are never returned.'});
     }
     // V10 operations and technician files: protected by existing admin session, MFA and CSRF.
-    if(p==='/api/admin/ops/config'&&method==='GET')return response(res,200,{encryption_ready:operations.isConfigured(),requests_enabled:process.env.ENABLE_REQUESTS==='true'});
-    if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests()});
+    if(p==='/api/admin/ops/config'&&method==='GET')return response(res,200,{encryption_ready:operations.isConfigured(),requests_enabled:process.env.ENABLE_REQUESTS==='true',role:actor.role,can_manage_technicians:rbac.can(actor.role,'technicians.manage'),can_read_technicians:rbac.can(actor.role,'technicians.read'),can_assign:rbac.can(actor.role,'requests.manage')});
+    const isTech=actor.role==='technician';
+    const techScope=r=>!isTech||(r&&actor.technician_id&&r.assigned_technician_id===actor.technician_id);
+    const redactFor=r=>{if(r&&r.contact&&!rbac.can(actor.role,'requests.pii')&&!(isTech&&['assigned','in_progress'].includes(r.status))){const {contact,...rest}=r;return rest}return r};
+    if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests(isTech?{technician_id:actor.technician_id||'-'}:{})});
     if(/^\/api\/admin\/ops\/requests\/[^/]+$/.test(p)&&method==='GET'){
-      const x=operations.requestDetail(p.split('/').at(-1));return x?response(res,200,{request:x}):response(res,404,{error:'Not found'});
+      const x=operations.requestDetail(p.split('/').at(-1));return x&&techScope(x)?response(res,200,{request:redactFor(x)}):response(res,404,{error:'Not found'});
     }
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/classify$/.test(p)&&method==='PUT'){
       const b=await bodyJson(req),updated=operations.classifyRequest(p.split('/').at(-2),b.service_slug,b.version,slug=>!!store.getService(slug));
-      store.logAudit('request_classified',updated.tracking_code,b.service_slug);return response(res,200,{request:updated});
+      A('request_classified',updated.tracking_code,b.service_slug);return response(res,200,{request:updated});
     }
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/candidates$/.test(p)&&method==='GET')return response(res,200,{candidates:operations.recommend(p.split('/').at(-2))});
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/status$/.test(p)&&method==='PUT'){
-      const b=await bodyJson(req),updated=operations.changeStatus(p.split('/').at(-2),b.status,b.note,b.version);
-      store.logAudit('request_status',updated.tracking_code,b.status);return response(res,200,{request:updated});
+      const b=await bodyJson(req);if(isTech){const own=operations.requestDetail(p.split('/').at(-2));if(!techScope(own)||!['in_progress','completed'].includes(b.status))return response(res,403,{error:'Action non autorisée pour ce rôle',code:'forbidden'})}const updated=operations.changeStatus(p.split('/').at(-2),b.status,b.note,b.version);
+      A('request_status',updated.tracking_code,b.status);return response(res,200,{request:updated});
     }
     if(/^\/api\/admin\/ops\/requests\/[^/]+\/assignment$/.test(p)&&method==='PUT'){
       const b=await bodyJson(req),updated=operations.assign(p.split('/').at(-2),b.technician_id,b.version);
-      store.logAudit('request_assignment',updated.tracking_code,b.technician_id);return response(res,200,{request:updated});
+      A('request_assignment',updated.tracking_code,b.technician_id);return response(res,200,{request:updated});
     }
     if(p==='/api/admin/ops/technicians'&&method==='GET')return response(res,200,{technicians:operations.listTechnicians()});
     if(p==='/api/admin/ops/technicians'&&method==='POST'){
       const b=await bodyJson(req),tech=operations.saveTechnician(b,slug=>!!store.getService(slug));
-      store.logAudit('technician_created',tech.id);return response(res,201,{technician:tech});
+      A('technician_created',tech.id);return response(res,201,{technician:tech});
     }
     if(/^\/api\/admin\/ops\/technicians\/[^/]+$/.test(p)&&method==='GET'){
       const tech=operations.technicianDetail(p.split('/').at(-1));return tech?response(res,200,{technician:tech}):response(res,404,{error:'Not found'});
     }
     if(/^\/api\/admin\/ops\/technicians\/[^/]+$/.test(p)&&method==='PUT'){
       const b=await bodyJson(req),tech=operations.saveTechnician(b,slug=>!!store.getService(slug),p.split('/').at(-1));
-      store.logAudit('technician_updated',tech.id);return response(res,200,{technician:tech});
+      A('technician_updated',tech.id);return response(res,200,{technician:tech});
     }
     // Private unified command center: aggregate business data only; no tokens, PII or deployment secrets.
     if(p==='/api/admin/control-center'&&method==='GET'){
@@ -209,22 +217,22 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
           usage:{day,used,daily_limit:limit},features:{text:flags.text_ai,image:flags.image_ai,audio:flags.audio_ai}},
         website:{public_contact_email_set:hasSetting('contact_email'),public_whatsapp_set:hasSetting('contact_whatsapp'),
           analytics_enabled:flags.analytics,inquiries_enabled:flags.inquiries,requests_enabled:flags.requests},
-        security:{mfa_required:true,admin_configured:adminConfigured(),encrypted_requests_ready:operations.isConfigured(),session_hours:8,
-          multiple_admin_accounts:false,domain_ssl:'check_external_railway'},
+        security:{mfa_required:true,admin_configured:auth.anyLoginConfigured(),encrypted_requests_ready:operations.isConfigured(),session_hours:8,
+          multiple_admin_accounts:(sql.prepare("SELECT count(*) n FROM staff_accounts WHERE status='active'").get().n+(auth.envLoginAllowed()?1:0))>1,rbac_enabled:true,staff_vault_ready:auth.vaultReady(),owner_migrated:auth.envConfigured()&&!auth.envLoginAllowed(),domain_ssl:'check_external_railway'},
         links:{public_site:'/constellation-v9/index.html',catalogue:'/admin/',operations:'/ops-v10/index.html',knowledge:'/brain-studio/index.html',requests:'/request-v10/index.html'}
       });
     }
     if(p==='/api/admin/overview'&&method==='GET')return response(res,200,{analytics:store.analytics(30),total_services:store.fullRows().length,published_services:store.fullRows().filter(x=>x.published).length,inquiries:store.db.prepare('SELECT count(*) n FROM inquiries').get().n,settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});
     if(p==='/api/admin/services'&&method==='GET')return response(res,200,{services:store.fullRows()});
-    if(p.startsWith('/api/admin/services/')&&method==='PUT'){const slug=p.split('/').at(-1),body=await bodyJson(req);const result=store.updateService(slug,body);if(!result)return response(res,404,{error:'Service introuvable'});store.logAudit('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
-    if(p==='/api/admin/settings'&&method==='PUT'){const b=await bodyJson(req);if(typeof b!=='object'||!b||Array.isArray(b))return response(res,400,{error:'Invalid'});for(const [k,v] of Object.entries(b))store.updateSetting(k,v);store.logAudit('update_settings','website',Object.keys(b).join(','));return response(res,200,{settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});}
+    if(p.startsWith('/api/admin/services/')&&method==='PUT'){let slug;try{slug=decodeURIComponent(p.split('/').at(-1))}catch{return response(res,400,{error:'Identifiant de service invalide'})}const body=await bodyJson(req);const current=store.getService(slug);if(current&&((Object.hasOwn(body,'published')&&body.published!==current.published)||(Object.hasOwn(body,'status')&&body.status!==current.status))&&!rbac.can(actor.role,'catalogue.publish'))return response(res,403,{error:'Seul un propriétaire peut publier ou changer la disponibilité',code:'forbidden',required:'catalogue.publish'});const result=store.updateService(slug,body);if(!result)return response(res,404,{error:'Service introuvable'});A('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
+    if(p==='/api/admin/settings'&&method==='PUT'){const b=await bodyJson(req);if(typeof b!=='object'||!b||Array.isArray(b))return response(res,400,{error:'Invalid'});for(const [k,v] of Object.entries(b))store.updateSetting(k,v);A('update_settings','website',Object.keys(b).join(','));return response(res,200,{settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});}
     if(p==='/api/admin/inquiries'&&method==='GET')return response(res,200,{inquiries:store.db.prepare('SELECT * FROM inquiries ORDER BY id DESC LIMIT 80').all()});
-    if(p==='/api/admin/audit'&&method==='GET')return response(res,200,{audit:store.db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 80').all()});
+    if(p==='/api/admin/audit'&&method==='GET')return response(res,200,{audit:store.listAudit({limit:u.searchParams.get('limit')||80,offset:u.searchParams.get('offset')||0,action:u.searchParams.get('action')||'',actor:u.searchParams.get('actor')||''}),integrity:store.verifyAudit()});
     return response(res,404,{error:'Not found'});
   }
   if(p.startsWith('/api/'))return response(res,404,{error:'Not found'});
   if(method!=='GET'&&method!=='HEAD')return text(res,405,'Method not allowed');
   return serveFile(req,res,p==='/'?'/index.html':p==='/admin'||p==='/admin/'?'/admin/index.html':p);
-}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,400,{error:e.message});console.error('Server request error',e.message);return response(res,500,{error:'Internal server error'});}});
+}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,e.status||400,{error:e.message,...(e.code?{code:e.code}:{})});console.error('Server request error',e.message);return response(res,500,{error:'Internal server error'});}});
 server.listen(port,'0.0.0.0',()=>console.log('ALLOSERVIX V2 listening on',port));
 module.exports={server,totpValid,passwordValid,searchServices};

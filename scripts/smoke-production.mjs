@@ -28,9 +28,10 @@ for(const [question,expected] of examples){
 }
 const adminPage=await request('/admin/');if(adminPage.status!==200)throw Error('Admin login page not served');
 const adminHtml=await adminPage.text();
-for(const marker of ['id="control"','id="cmd-services"','id="cmd-knowledge"','id="intelligence"','id="security"'])
+for(const marker of ['id="nav"','id="view"','id="login"','id="reauth"'])
  if(!adminHtml.includes(marker))throw Error('Unified command center UI missing marker '+marker);
-const adminJs=await request('/admin/admin.js');if(adminJs.status!==200||!(await adminJs.text()).includes('/api/admin/control-center'))throw Error('Admin center client script missing');
+const adminJs=await request('/admin/console-views.js');if(adminJs.status!==200||!(await adminJs.text()).includes('/api/admin/control-center'))throw Error('Admin center client script missing');
+for(const privatePath of ['/api/admin/staff','/api/admin/me','/api/admin/audit']){const r=await request(privatePath);if(r.status!==401)throw Error('Private admin endpoint exposed without a session: '+privatePath+' '+r.status)}
 const adminCss=await request('/admin/admin.css');if(adminCss.status!==200||!(await adminCss.text()).includes('.control-hero'))throw Error('Admin command center CSS missing');
 const admin=await request('/api/admin/ai/status');if(admin.status!==401)throw Error('Private AI status exposed: '+admin.status);
 const privateCenter=await request('/api/admin/control-center');if(privateCenter.status!==401)throw Error('Control center is exposed without a session');

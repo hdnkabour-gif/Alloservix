@@ -89,7 +89,7 @@ function createOperations(db, options={}) {
     return {tracking_code:r.tracking_code,status:r.status,created_at:r.created_at,updated_at:r.updated_at,title:r.title,city:r.city};
   }
   function adminRequest(r,detail=false){const {secret_hash,private_data,...safe}=r;return {...safe,answers:JSON.parse(r.answers_json),...(detail?{contact:decrypt(private_data),events:db.prepare('SELECT created_at,action,actor,note,old_status,new_status FROM request_events WHERE request_id=? ORDER BY id DESC').all(r.id)}:{})};}
-  function listRequests(){return db.prepare('SELECT * FROM service_requests ORDER BY created_at DESC LIMIT 100').all().map(r=>adminRequest(r,false))}
+  function listRequests(filter={}){const rows=filter.technician_id?db.prepare('SELECT * FROM service_requests WHERE assigned_technician_id=? ORDER BY created_at DESC LIMIT 100').all(filter.technician_id):db.prepare('SELECT * FROM service_requests ORDER BY created_at DESC LIMIT 100').all();return rows.map(r=>adminRequest(r,false))}
   function requestDetail(id){const r=getRequest(id);return r?adminRequest(r,true):null}
   function changeStatus(id,status,reason='',expected_version){const r=getRequest(id);if(!r)fail('Request not found');validChoice(status,'status',allowedStatus);if(!transitions[r.status].includes(status))fail('Invalid status transition');if(expected_version!==r.version)fail('Record modified; refresh');if(status==='assigned'&&!r.assigned_technician_id)fail('Technician assignment required');db.prepare('UPDATE service_requests SET status=?,updated_at=?,version=version+1 WHERE id=?').run(status,now(),r.id);event(r.id,'status_changed','admin',reason,r.status,status);return requestDetail(r.id)}
   function classifyRequest(id,service_slug,expected_version,validService){
