@@ -8,7 +8,7 @@
 <link rel="icon" href="/constellation-v9/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/constellation-v9/style.css"><script src="/assets/config.js" defer></script><script src="/constellation-v9/app.js" defer></script>
+<link rel="stylesheet" href="/constellation-v9/style.css"><script src="/assets/config.js" defer></script><script src="/constellation-v9/app.js" defer></script><script src="/constellation-v9/media-ui.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#workspace">Aller au contenu</a>
@@ -82,7 +82,20 @@
 
     <section class="screen work-scene" data-screen="quick" aria-labelledby="quick-title" hidden>
       <div class="work-header"><button class="back-btn" data-go="home" aria-label="Retour"><svg><use href="#i-back"/></svg></button><div><span class="kicker" data-i18n="expressKicker">ALLOSERVIX · EXPRESS</span><h2 id="quick-title" data-i18n="quickTitle">Parlez-nous de votre besoin.</h2><p data-i18n="quickDesc">Une phrase suffit pour commencer, même sans vocabulaire technique.</p></div><span class="work-illustration" aria-hidden="true"><svg><use href="#i-spark"/></svg></span></div>
-      <div class="work-surface glass"><form id="quick-form" class="quick-form"><label for="quick-input" data-i18n="quickLabel">Qu'est-ce qui vous préoccupe ?</label><textarea id="quick-input" rows="3" maxlength="500" placeholder="Ex : mon ordinateur ne démarre plus, j'ai besoin d'un système de vente..."></textarea><button class="primary-btn" type="submit"><span data-i18n="analyze">Comprendre mon besoin</span><svg><use href="#i-arrow"/></svg></button></form><div class="hint-grid"><button data-example="pc" data-go="quick"><svg><use href="#i-monitor"/></svg><span>Réinstaller Windows</span></button><button data-example="wifi" data-go="quick"><svg><use href="#i-wifi"/></svg><span>Wi-Fi qui coupe</span></button><button data-example="stock" data-go="quick"><svg><use href="#i-code"/></svg><span>Application métier</span></button><button data-example="cctv" data-go="quick"><svg><use href="#i-camera"/></svg><span>Installer des caméras</span></button></div></div>
+      <div class="work-surface glass"><form id="quick-form" class="quick-form"><label for="quick-input" data-i18n="quickLabel">Qu'est-ce qui vous préoccupe ?</label><textarea id="quick-input" rows="3" maxlength="500" placeholder="Ex : mon ordinateur ne démarre plus, j'ai besoin d'un système de vente..."></textarea><button class="primary-btn" type="submit"><span data-i18n="analyze">Comprendre mon besoin</span><svg><use href="#i-arrow"/></svg></button></form><section class="allo-media" aria-label="Décrire le besoin par la voix ou une photo">
+ <div class="allo-media-header"><strong>Décrivez à votre façon · شرح بطريقتك</strong><small>Texte, voix ou photo. Vérifiez toujours le résultat avant de l'envoyer.</small></div>
+ <div class="allo-media-controls">
+  <label for="allo-voice-lang">Langue / اللغة</label>
+  <select id="allo-voice-lang" aria-label="Langue de la dictée"><option value="ar-MA">الدارجة / العربية</option><option value="fr-FR">Français</option><option value="en-US">English</option></select>
+  <button type="button" id="allo-dictate">🎙️ Dictée / إملاء</button>
+  <button type="button" id="allo-cloud-voice" hidden>🎤 Transcription IA (10 s)</button>
+  <label class="allo-file-label" for="allo-photo">📷 Photo / صورة</label>
+  <input type="file" id="allo-photo" accept="image/jpeg,image/png,image/webp" capture="environment">
+  <button type="button" id="allo-analyze-photo" hidden>Comprendre la photo</button>
+ </div>
+ <label class="allo-media-consent"><input type="checkbox" id="allo-media-consent"> J'accepte le traitement externe du média choisi pour identifier mon besoin, sans réponse automatique. أوافق على تحليل الملف خارجياً لفهم طلبي فقط.</label>
+ <p id="allo-media-status" role="status" aria-live="polite">La dictée peut dépendre du navigateur. Aucune photo ni audio n'est envoyé automatiquement.</p>
+ </section><div class="hint-grid"><button data-example="pc" data-go="quick"><svg><use href="#i-monitor"/></svg><span>Réinstaller Windows</span></button><button data-example="wifi" data-go="quick"><svg><use href="#i-wifi"/></svg><span>Wi-Fi qui coupe</span></button><button data-example="stock" data-go="quick"><svg><use href="#i-code"/></svg><span>Application métier</span></button><button data-example="cctv" data-go="quick"><svg><use href="#i-camera"/></svg><span>Installer des caméras</span></button></div></div>
     </section>
 
     <section class="screen work-scene" data-screen="guide" aria-labelledby="guide-title" hidden><div class="work-header"><button class="back-btn" data-go="home" aria-label="Retour"><svg><use href="#i-back"/></svg></button><div><span class="kicker" data-i18n="guideKicker">ALLOSERVIX · PARCOURS GUIDÉ</span><h2 id="guide-title" data-i18n="guideTitle">On avance à votre rythme.</h2><p data-i18n="guideDesc">Choisissez une image, pas besoin de connaître le nom technique.</p></div></div><div class="guide-pane"><div class="guide-grid"><button data-sector="home"><svg><use href="#i-home"/></svg><strong data-i18n="sectorHome">Maison & villa</strong></button><button data-sector="shop"><svg><use href="#i-store"/></svg><strong data-i18n="sectorShop">Commerce & atelier</strong></button><button data-sector="company"><svg><use href="#i-building"/></svg><strong data-i18n="sectorCompany">Entreprise</strong></button><button data-sector="industry"><svg><use href="#i-factory"/></svg><strong data-i18n="sectorFactory">Usine & industrie</strong></button></div><p class="helper-tip"><svg><use href="#i-question"/></svg><span data-i18n="guideHelp">Choisissez où se trouve votre besoin. Vous pouvez changer ensuite.</span></p></div></section>
