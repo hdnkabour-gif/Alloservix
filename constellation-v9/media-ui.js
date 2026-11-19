@@ -15,9 +15,9 @@ async function load(){
 function permitted(){if(consent.checked)return true;tell(isArabic()?'خاصك توافق قبل إرسال الصوت أو الصورة للتحليل.':'Cochez le consentement avant tout envoi ou dictée.',true);return false}
 function readBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('file read'));reader.readAsDataURL(blob)})}
 function canvasPhoto(file){return new Promise((resolve,reject)=>{
- const url=URL.createObjectURL(file),picture=new Image();
- picture.onload=()=>{try{const scale=Math.min(1,960/Math.max(picture.width,picture.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.floor(picture.width*scale));canvas.height=Math.max(1,Math.floor(picture.height*scale));canvas.getContext('2d').drawImage(picture,0,0,canvas.width,canvas.height);let data=canvas.toDataURL('image/jpeg',0.7);if(data.length>1500000)data=canvas.toDataURL('image/jpeg',0.48);URL.revokeObjectURL(url);if(data.length>1650000)throw Error('photo too big');resolve(data)}catch(e){URL.revokeObjectURL(url);reject(e)}};
- picture.onerror=()=>{URL.revokeObjectURL(url);reject(Error('image invalid'))};picture.src=url;
+ const picture=new Image();
+ picture.onload=()=>{try{const scale=Math.min(1,960/Math.max(picture.width,picture.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.floor(picture.width*scale));canvas.height=Math.max(1,Math.floor(picture.height*scale));canvas.getContext('2d').drawImage(picture,0,0,canvas.width,canvas.height);let data=canvas.toDataURL('image/jpeg',0.7);if(data.length>1500000)data=canvas.toDataURL('image/jpeg',0.48);if(data.length>1650000)throw Error('photo too big');resolve(data)}catch(e){reject(e)}};
+ picture.onerror=()=>reject(Error('image invalid'));const reader=new FileReader();reader.onload=()=>{picture.src=reader.result};reader.onerror=()=>reject(Error('image read'));reader.readAsDataURL(file);
  })}
 async function send(endpoint,data_url){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),11000);
  try{const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({data_url,allow_external_processing:true,lang:isArabic()?'ar':'fr'})});
