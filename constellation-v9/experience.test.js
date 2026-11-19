@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const dir=__dirname,html=fs.readFileSync(path.join(dir,'index.html'),'utf8'),js=fs.readFileSync(path.join(dir,'app.js'),'utf8'),css=fs.readFileSync(path.join(dir,'style.css'),'utf8');
 const assets=['hero-wide.svg','hero-mobile.svg','service-world.svg','home.svg','shop.svg','company.svg','favicon.svg'];
 test('all preview images and icon are present',()=>{for(const x of assets)assert.ok(fs.statSync(path.join(dir,'assets',x)).size>100,x)});
-test('existing private admin is linked but not reimplemented in client',()=>{assert.match(html,/href="\/admin"/);assert.doesNotMatch(js,/ADMIN_PASSWORD|ADMIN_TOTP_SECRET|API_KEY|localStorage\.setItem/)});
+test('existing private admin is linked but not reimplemented in client',()=>{assert.match(html,/href="\/admin\/"/);assert.doesNotMatch(js,/ADMIN_PASSWORD|ADMIN_TOTP_SECRET|API_KEY/);assert.match(js,/localStorage\.setItem\('allo-ui-lang'/);assert.doesNotMatch(js,/localStorage\.setItem\((?!'allo-ui-lang')/)});
 test('forms and visible scenes have unique ids',()=>{const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(x=>x[1]);assert.equal(ids.length,new Set(ids).size)});
 test('server-grounded suggestions, AI disabled until consent',()=>{assert.match(js,/\/api\/public\/assistant/);assert.match(js,/allow_external_ai:state\.allowAI/);assert.match(js,/allowAI:false/);assert.match(js,/window\.confirm/);assert.match(js,/state\.allowAI=true/);assert.match(js,/\/api\/public\/catalog/)});
 test('user text goes into textContent and maxlength is bounded',()=>{assert.match(html,/maxlength="500"/);assert.match(js,/\.textContent=state\.request/);assert.doesNotMatch(js,/innerHTML\s*=\s*.*state\.request/)});
