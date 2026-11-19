@@ -26,3 +26,6 @@
 
 /* Language selector: four explicit locales, accessible and responsive. */
 .lang-switch{gap:3px;padding:4px;border-radius:14px;flex-wrap:wrap;justify-content:center;max-width:100%}.lang-switch button{appearance:none;border:0;background:transparent;color:#475078;padding:8px 10px;border-radius:10px;font:700 12px Manrope,Tajawal,system-ui,sans-serif;white-space:nowrap;min-height:35px}.lang-switch button.is-active{background:#263fdd;color:#fff;box-shadow:0 3px 11px #2b49e733}.lang-switch button:focus-visible{outline:2px solid #f98935;outline-offset:2px}html[dir="rtl"] .search-hero input,html[dir="rtl"] .quick-form textarea,html[dir="rtl"] #catalog-search{text-align:right}html[dir="rtl"] .lang-switch{direction:ltr}@media(max-width:680px){.lang-switch{max-width:175px;gap:0}.lang-switch button{padding:6px;font-size:10px;min-height:31px}}
+
+/* Service catalogue icons: tangible categories, no fictitious reviews or availability claims. */
+.catalog-item{display:flex;align-items:center;gap:12px}.service-category-icon{display:inline-grid;place-items:center;flex:0 0 39px;width:39px;height:39px;font-size:22px;border-radius:12px;background:linear-gradient(145deg,#eaf0ff,#f6f9ff);border:1px solid #d8e0ff}.catalog-item>span:not(.service-category-icon){min-width:0;flex:1}
