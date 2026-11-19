@@ -12,6 +12,7 @@ let errs='';child.stderr.on('data',d=>{errs+=d.toString()});t.after(()=>{child.k
 let ready=false;for(let i=0;i<80;i++){if(child.exitCode!==null)break;try{const r=await fetch(url+'/health');if(r.ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,70))}assert.ok(ready,'server never started: '+errs);
 const j=async(p,method='GET',data,headers={})=>fetch(url+p,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...headers},body:data?JSON.stringify(data):undefined});
 let r=await j('/api/admin/overview');assert.equal(r.status,401,'private data must not be exposed');
+r=await j('/api/admin/control-center');assert.equal(r.status,401,'control-center must require MFA session');
 r=await j('/.data/alloservix.sqlite');assert.equal(r.status,404,'database cannot be served');
 r=await j('/api/public/catalog');assert.equal(r.status,200);let cat=await r.json();assert.equal(cat.services.length,100);assert.equal(cat.features.analytics,true);
 r=await j('/api/public/assistant','POST',{question:'أحتاج نظام تسيير المخزون'});assert.equal(r.status,200);let assist=await r.json();assert.ok(assist.matches.length,'assistant should find a relevant catalog service');assert.equal(assist.engine,'catalogue-grounded');
@@ -20,6 +21,25 @@ r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:
 r=await j('/api/admin/login','POST',{email:'administrator@example.org',password:pw,totp:otp()});assert.equal(r.status,200);const cookie=r.headers.get('set-cookie').split(';')[0];const login=await r.json();
 assert.ok(cookie.startsWith('allo_admin='));assert.equal(login.authenticated,true);
 r=await j('/api/admin/overview','GET',undefined,{Cookie:cookie});assert.equal(r.status,200);let ov=await r.json();assert.equal(ov.total_services,100);
+r=await j('/api/admin/control-center','GET',undefined,{Cookie:cookie});assert.equal(r.status,200);
+const center=await r.json();
+assert.equal(center.catalogue.total,100);
+assert.equal(center.catalogue.available,0);
+assert.equal(center.catalogue.in_study,100);
+assert.equal(center.catalogue.categories.length,13);
+assert.equal(center.work.requests,0);
+assert.equal(center.work.technicians,0);
+assert.equal(center.knowledge.concepts,0);
+assert.equal(center.security.mfa_required,true);
+assert.equal(center.security.multiple_admin_accounts,false);
+assert.equal(center.security.domain_ssl,'check_external_railway');
+assert.equal(center.website.analytics_enabled,true);
+assert.equal(center.website.requests_enabled,false);
+assert.equal(center.intelligence.configured_providers.length,4);
+assert.ok(center.intelligence.configured_providers.every(v=>v.key_configured===false));
+assert.ok(!JSON.stringify(center).includes('ADMIN_PASSWORD_HASH'));
+assert.ok(!JSON.stringify(center).includes('ADMIN_TOTP_SECRET'));
+
 r=await j('/api/admin/services/cameras-ip','PUT',{fr:'Test change'},{Cookie:cookie});assert.equal(r.status,403,'CSRF check');
 r=await j('/api/admin/services/cameras-ip','PUT',{fr:'Caméras IP — test'},{Cookie:cookie,'X-CSRF-Token':login.csrf});assert.equal(r.status,200);
 r=await j('/api/public/catalog');cat=await r.json();assert.equal(cat.services.find(x=>x.slug==='cameras-ip').fr,'Caméras IP — test');

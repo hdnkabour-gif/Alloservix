@@ -27,6 +27,8 @@ for(const [question,expected] of examples){
  if(answer.engine!=='catalogue-grounded')throw Error('External model unexpectedly authored the answer');
 }
 const admin=await request('/api/admin/ai/status');if(admin.status!==401)throw Error('Private AI status exposed: '+admin.status);
+const privateCenter=await request('/api/admin/control-center');if(privateCenter.status!==401)throw Error('Control center is exposed without a session');
+const adminSession=await request('/api/admin/session');if(adminSession.status!==200)throw Error('Admin session check unavailable');const sess=await adminSession.json();if(sess.configured!==true||sess.authenticated!==false)throw Error('Admin credentials not configured or session not protected');
 const source=await request('/media-understanding.js');if(source.status!==404)throw Error('Private media source exposed');
 const disabledMedia=await request('/api/public/understand-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({allow_external_processing:false})});
 if(![400,503].includes(disabledMedia.status))throw Error('Media consent/feature gate failed: '+disabledMedia.status);
