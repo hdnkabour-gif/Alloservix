@@ -258,6 +258,31 @@ test('server errors are captured (redacted) and surface in the status page',asyn
   assert.ok(!JSON.stringify(st.body.errors).match(/@|password/i));
 });
 
+test('brain monitoring over HTTP: traffic is counted without storing text; eval runs; roles enforced',async()=>{
+  const anon=new Client(srv.url),unique='ZQXJ-unique-marker-wifi-faible-chez-moi';
+  for(const q of ['الويفي ضعيف فالدار','mon wifi ne marche pas','xxxxx nonsensical not-a-device',unique])assert.equal((await anon.post('/api/public/assistant',{question:q})).status,200);
+  assert.equal((await anon.post('/api/public/assistant',{question:'mon wifi',allow_external_ai:true})).status,200,'AI requested but disabled: still answered locally');
+  const m=await staff('manager','Brainmgr'),c=await login(m);
+  const o=await c.get('/api/admin/brain/overview?days=7');assert.equal(o.status,200,JSON.stringify(o.body));
+  assert.ok(o.body.text.calls>=5);assert.ok(o.body.confidence.high>=1);assert.ok(o.body.text.no_match>=1);assert.equal(o.body.privacy.raw_text_stored,false);assert.ok(o.body.ai_assistance.disabled>=1);
+  assert.ok(!JSON.stringify(o.body).includes(unique));
+  const {DatabaseSync}=require('node:sqlite'),db=new DatabaseSync(require('node:path').join(srv.dir,'alloservix.sqlite'),{readOnly:true});
+  const rows=JSON.stringify(db.prepare('SELECT * FROM brain_calls').all())+JSON.stringify(db.prepare('SELECT * FROM audit').all())+JSON.stringify(db.prepare('SELECT * FROM error_log').all());db.close();
+  assert.ok(!rows.includes(unique)&&!rows.includes('الويفي ضعيف'),'visitor text must never reach the database');
+  const pr=await c.get('/api/admin/brain/providers');assert.equal(pr.status,200);assert.equal(pr.body.enabled,false);assert.equal(pr.body.cost.computed,false);assert.equal(pr.body.circuit_breakers.length,4);
+  const run=await c.post('/api/admin/brain/eval/run',{});assert.equal(run.status,201,JSON.stringify(run.body));assert.ok(run.body.run.summary.total>=40);assert.ok(run.body.run.summary.topic_accuracy>0.8);
+  assert.ok(run.body.run.results.some(r=>r.no_match),'weak spots are listed');
+  assert.equal((await c.get('/api/admin/brain/eval/runs/'+run.body.run.id)).body.run.results.length,run.body.run.summary.total);
+  const add=await c.post('/api/admin/brain/eval/cases',{query:'imprimante hp tache noire sur la page',expect_topic:'printer',expect_slugs:['imprimantes-scanners']});assert.equal(add.status,201,JSON.stringify(add.body));
+  assert.equal((await c.post('/api/admin/brain/eval/cases',{query:'contact moi sur jean@example.org',expect_topic:'pc'})).status,400);
+  assert.equal((await c.put('/api/admin/brain/eval/cases/'+add.body.case.id,{active:false})).body.case.active,false);
+  assert.equal((await c.get('/api/admin/brain/unmatched')).body.enabled,false);
+  const tt=await owner.post('/api/admin/ops/technicians',{privacy_consent:true,name:'Brain Tech',city:'Agadir',phone:'+212600000033',years_experience:1,capacity:1,level:'junior',verification_status:'pending',contract_status:'pending',availability_status:'unavailable',onsite_available:true,skills:[]});
+  const tc=await login(await staff('technician','Braintech',{technician_id:tt.body.technician.id}));
+  for(const [method,p] of [['GET','/api/admin/brain/overview'],['GET','/api/admin/brain/providers'],['GET','/api/admin/brain/unmatched'],['POST','/api/admin/brain/eval/run'],['POST','/api/admin/brain/eval/cases']])assert.equal((await tc.call(method,p,method==='POST'?{}:undefined)).status,403,p);
+  assert.equal((await new Client(srv.url).get('/api/admin/brain/overview')).status,401);
+});
+
 test('owner migrates from Railway bootstrap credentials to in-app credentials; old ones stop working',async()=>{
   const o=new Client(srv.url);assert.equal((await o.login(srv.owner.email,srv.owner.password,srv.owner.secret)).status,200);
   const NEW='Migrated-Passphrase-Of-The-Founder-1!';

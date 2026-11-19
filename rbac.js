@@ -94,6 +94,12 @@ const ROUTES = [
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/invite$/, 'staff.manage'],
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/revoke-sessions$/, 'staff.manage'],
   ['GET', /^\/api\/admin\/rbac$/, 'session'],
+  ['GET', /^\/api\/admin\/brain\/(?:overview|providers|eval\/cases|eval\/runs)$/, 'ai.monitor'],
+  ['GET', /^\/api\/admin\/brain\/eval\/runs\/[1-9][0-9]{0,8}$/, 'ai.monitor'],
+  ['GET', /^\/api\/admin\/brain\/unmatched$/, 'inquiries.read'],
+  ['POST', /^\/api\/admin\/brain\/eval\/run$/, 'ai.monitor'],
+  ['POST', /^\/api\/admin\/brain\/eval\/cases$/, 'knowledge.edit'],
+  ['PUT', /^\/api\/admin\/brain\/eval\/cases\/[1-9][0-9]{0,8}$/, 'knowledge.edit'],
   ['GET', /^\/api\/admin\/system\/(?:status|errors|backups)$/, 'system.status'],
   ['POST', /^\/api\/admin\/system\/domain-check$/, 'system.status'],
   ['POST', /^\/api\/admin\/system\/backups$/, 'system.backup']

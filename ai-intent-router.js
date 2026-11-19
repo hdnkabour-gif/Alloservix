@@ -41,19 +41,24 @@ function validate(raw,rows){if(!raw||typeof raw!=='object'||Array.isArray(raw))t
   service_slugs:[...new Set(raw.service_slugs.filter(x=>typeof x==='string'&&allowed.has(x)))].slice(0,3),
   question_ids:[...new Set(raw.question_ids.filter(x=>QUESTION_IDS.has(x)))].slice(0,3)};
 }
-async function classify(query,rows,{env=process.env,fetchImpl=fetch,clock=Date.now,breakerState=breaker}={}){
+const usageOf=(provider,d)=>{try{if(provider==='gemini')return {in:d.usageMetadata?.promptTokenCount??null,out:d.usageMetadata?.candidatesTokenCount??null};if(provider==='deepseek')return {in:d.usage?.prompt_tokens??null,out:d.usage?.completion_tokens??null};return {in:d.usage?.input_tokens??null,out:d.usage?.output_tokens??null}}catch{return {in:null,out:null}}};
+const errorCode=e=>e&&e.name==='AbortError'?'timeout':e&&/^http_\d{3}$/.test(e.code||'')?e.code:e instanceof TypeError?'network':'invalid_output';
+function breakers(state=breaker,clock=Date.now){return PROVIDERS.map(p=>{const c=state.get(p)||{fails:0,until:0};return {provider:p,state:c.until>clock()?'open':'closed',consecutive_failures:c.fails,reopens_in_seconds:c.until>clock()?Math.ceil((c.until-clock())/1000):0}})}
+async function classify(query,rows,{env=process.env,fetchImpl=fetch,clock=Date.now,breakerState=breaker,onEvent=()=>{}}={}){
  if(!enabled(env))return null;
  const deadline=clock()+limits.totalMs;
  for(const provider of order(env).slice(0,limits.maxProviders)){
-  const circuit=breakerState.get(provider)||{fails:0,until:0};if(circuit.until>clock())continue;
+  const circuit=breakerState.get(provider)||{fails:0,until:0};if(circuit.until>clock()){onEvent({provider,ok:false,error:'circuit_open',ms:0});continue}
   const remaining=deadline-clock();if(remaining<=0)break;
   const options=payload(provider,query,rows,env);const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),Math.min(limits.timeoutMs,remaining));
+  const started=clock();
   try{
    const r=await fetchImpl(options.url,{method:'POST',headers:{'Content-Type':'application/json',...options.headers},body:JSON.stringify(options.body),signal:abort.signal});
-   if(!r.ok)throw Error('provider non-success');
+   if(!r.ok){const err=Error('provider non-success');err.code='http_'+r.status;throw err}
    const data=await r.json(),out=validate(extract(provider,data),rows);
-   breakerState.delete(provider);return {...out,provider};
-  }catch{
+   breakerState.delete(provider);onEvent({provider,ok:true,ms:clock()-started,usage:usageOf(provider,data)});return {...out,provider};
+  }catch(e){
+   onEvent({provider,ok:false,error:errorCode(e),ms:clock()-started});
    circuit.fails+=1;if(circuit.fails>=2){circuit.fails=0;circuit.until=clock()+limits.openMs;}breakerState.set(provider,circuit);
   }finally{clearTimeout(timer);}
  }
@@ -77,4 +82,4 @@ function applySuggestion(analysis,insight,rows,answers={}){
  const questions=[...new Map(ordered.map(x=>[x.id,x])).values()].slice(0,Math.max(0,3-Object.keys(answers).length));
  return {...analysis,matches:merged,questions,understanding:{source:'external-intent-only',provider:insight.provider,confidence:insight.confidence}};
 }
-module.exports={configured,enabled,order,sanitize,publicCatalog,validate,classify,applySuggestion,goalQuestion};
+module.exports={breakers,configured,enabled,order,sanitize,publicCatalog,validate,classify,applySuggestion,goalQuestion};
