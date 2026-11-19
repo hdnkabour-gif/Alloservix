@@ -28,6 +28,6 @@ test('Every catalog service is reachable, requests stay gated and admin stays pr
 test('Guided response carries context to request wizard without auto-sending contact',()=>{
  const v9=fs.readFileSync(path.join(root,'constellation-v9/app.js'),'utf8');
  const v10=fs.readFileSync(path.join(root,'request-v10/app.js'),'utf8');
- assert.match(v9,/allow_external_ai:false,answers:/);assert.match(v9,/sessionStorage\.setItem\('allo_request_draft'/);
+ assert.match(v9,/allow_external_ai:state\.allowAI,answers:/);assert.match(v9,/allowAI:false/);assert.match(v9,/window\.confirm/);assert.match(v9,/sessionStorage\.setItem\('allo_request_draft'/);
  assert.match(v10,/sessionStorage\.removeItem\('allo_request_draft'/);
 });
