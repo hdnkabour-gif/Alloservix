@@ -3,6 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const store=require('./storage');
 const intentEngine=require('./intent-engine');
 const aiIntent=require('./ai-intent-router');
+const media=require('./media-understanding');
 const studio=require('./knowledge-studio').createStudio(store.db,store,JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories.map(c=>c.id));
 const operations=require('./operations').createOperations(store.db,{getService:store.getService});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
@@ -17,7 +18,7 @@ function passwordValid(entered,stored){try{const [saltHex,keyHex]=String(stored|
 const adminConfigured=()=>!!(process.env.ADMIN_EMAIL&&process.env.ADMIN_PASSWORD_HASH&&process.env.ADMIN_TOTP_SECRET);
 const response=(res,status,obj)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
 const text=(res,status,body)=>{res.writeHead(status,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});res.end(body)};
-async function bodyJson(req){let data='';for await(const chunk of req){data+=chunk;if(data.length>16000)throw Error('Body too large')}try{return JSON.parse(data||'{}')}catch{throw Error('Invalid JSON')}}
+async function bodyJson(req,maxBytes=16000){const chunks=[];let total=0;const declared=Number(req.headers['content-length']||0);if(declared>maxBytes)throw Error('Body too large');for await(const chunk of req){total+=chunk.length;if(total>maxBytes)throw Error('Body too large');chunks.push(chunk)}try{return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}')}catch{throw Error('Invalid JSON')}}
 function originOk(req){const origin=req.headers.origin;if(!origin)return true;try{return new URL(origin).host===req.headers.host}catch{return false}}
 function grantSession(req,res){const token=crypto.randomBytes(32).toString('hex'),csrf=crypto.randomBytes(24).toString('hex'),now=Date.now();sessions.set(hash(token),{csrf,created:now,last:now});res.setHeader('Set-Cookie',`allo_admin=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=28800${production?'; Secure':''}`);return csrf}
 function session(req){const cookie=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('allo_admin='));if(!cookie)return null;const token=cookie.split('=').slice(1).join('=');if(!/^[0-9a-f]{64}$/.test(token))return null;const key=hash(token),s=sessions.get(key),now=Date.now();if(!s)return null;if(now-s.created>8*3600000||now-s.last>30*60000){sessions.delete(key);return null}s.last=now;return {key,...s}}
@@ -46,7 +47,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
   if(p==='/health'&&method==='GET')return response(res,200,{ok:true});
   // QR campaigns and domain homepage open the new guide; preserve /index.html legacy.
   if(p==='/'&&method==='GET'){const src=u.searchParams.get('src');const campaign=['flyer','sticker','business-card'].includes(src)?'?src='+src:'';res.writeHead(302,{'Location':'/constellation-v9/index.html'+campaign,'Cache-Control':'no-store'});return res.end();}
-  if(p==='/api/public/catalog'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'))).categories,services:store.fullRows().filter(s=>s.published&&s.status!=='Indisponible'),settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});
+  if(p==='/api/public/catalog'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'))).categories,services:store.fullRows().filter(s=>s.published&&s.status!=='Indisponible'),settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled(),image_intent:media.imageEnabled(),audio_transcription:media.audioEnabled(),browser_voice:true}});
   if(p.startsWith('/api/public/service/')&&method==='GET'){const s=store.getService(p.split('/').at(-1));return s&&s.published&&s.status!=='Indisponible'?response(res,200,s):response(res,404,{error:'Not found'});}
   if((p==='/api/public/assistant'||p==='/api/public/diagnose')&&method==='POST'){
     if(!checkRate('assist:'+clientId(req),40,3600000))return response(res,429,{error:'Trop de demandes'});
@@ -69,6 +70,21 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
       }
     }
     return response(res,200,{...result,engine:'catalogue-grounded'});
+  }
+  // Ephemeral media intake; the visitor must explicitly approve provider processing.
+  if((p==='/api/public/understand-image'||p==='/api/public/transcribe-audio')&&method==='POST'){
+    if(!originOk(req))return response(res,403,{error:'Origin rejected'});
+    const isImage=p==='/api/public/understand-image';
+    if(!(isImage?media.imageEnabled():media.audioEnabled()))return response(res,503,{error:'Media assistance not enabled'});
+    if(!checkRate((isImage?'image:':'audio:')+clientId(req),isImage?8:6,3600000))return response(res,429,{error:'Too many media requests'});
+    const b=await bodyJson(req,isImage?1800000:2050000);
+    if(b.allow_external_processing!==true)return response(res,400,{error:'Explicit media consent required'});
+    try{media.parseDataUrl(b.data_url,isImage?'image':'audio')}catch{return response(res,400,{error:'Unsupported or oversized media'})}
+    const day=new Date().toISOString().slice(0,10),n=Number(process.env.AI_DAILY_LIMIT||40),max=Number.isFinite(n)?Math.max(0,Math.min(500,Math.floor(n))):40;
+    if(store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n>=max)return response(res,429,{error:'Daily AI budget reached'});
+    store.db.prepare('INSERT INTO ai_usage(day) VALUES(?)').run(day);
+    const result=isImage?await media.analyzeImage(b.data_url,{lang:b.lang==='ar'?'ar':'fr'}):await media.transcribeAudio(b.data_url);
+    return result?response(res,200,result):response(res,503,{error:'Media recognition unavailable; describe your need in text'});
   }
   if(p==='/api/public/event'&&method==='POST'){if(process.env.ENABLE_ANALYTICS!=='true')return response(res,503,{error:'Statistiques désactivées'});if(!checkRate('event:'+clientId(req),400,3600000))return response(res,429,{error:'Rate limit'});const obj=safeEvent(await bodyJson(req));if(!obj)return response(res,400,{error:'Invalid event or no consent'});store.recordEvent(obj);res.writeHead(204);return res.end();}
   // V10 customer request lifecycle. Disabled until explicit rollout + encrypted storage key.
@@ -119,6 +135,14 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);try{
         store.logAudit('studio_'+kind+'_review',String(id),String(b.review_state));
         return response(res,200,{result});
       }
+    }
+    if(p==='/api/admin/ai/status'&&method==='GET'){
+      const day=new Date().toISOString().slice(0,10),used=store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n;
+      const providers=new Set(aiIntent.configured());
+      return response(res,200,{providers:['openai','gemini','anthropic','deepseek'].map(name=>({name,key_configured:providers.has(name)})),
+        features:{text_intent:aiIntent.enabled(),image_intent:media.imageEnabled(),audio_transcription:media.audioEnabled()},
+        usage:{day,used,daily_limit:Math.max(0,Math.min(500,Number(process.env.AI_DAILY_LIMIT||40)||0))},
+        note:'Only configuration presence is reported. API secrets are never returned.'});
     }
     // V10 operations and technician files: protected by existing admin session, MFA and CSRF.
     if(p==='/api/admin/ops/config'&&method==='GET')return response(res,200,{encryption_ready:operations.isConfigured(),requests_enabled:process.env.ENABLE_REQUESTS==='true'});
