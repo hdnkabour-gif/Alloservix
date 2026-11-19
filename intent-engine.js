@@ -92,11 +92,16 @@ function rank(query,all,intent){
      else if((' '+terms+' ').includes(' '+w+' '))evidence+=5;
      else if((' '+desc+' ').includes(' '+w+' '))evidence+=2;
    }
+   // Approved knowledge links can reveal a service even when no generic topic matched.
+   // Matching is exact-token-based; draft or archived knowledge is never supplied here.
+   const curated=clean(s.curated_aliases||'');
+   const curatedHits=curated?tokens.filter(w=>w.length>=3&&(' '+curated+' ').includes(' '+w+' ')).length:0;
+   const learned=curatedHits?28+Math.min(12,(curatedHits-1)*4):0;
    const highlight=boosts.get(s.slug)||0;
    const sameDomain=related.has(s.category);
-   const score=evidence+highlight+(sameDomain?12:-12)+(intent.topic==='advice'&&s.category==='consulting'?5:0);
-   return {s,score,evidence,highlight,sameDomain};
- }).filter(x=>x.highlight>0||(x.evidence>0&&(x.sameDomain||x.evidence>=16)))
+   const score=evidence+highlight+learned+(sameDomain?12:-12)+(intent.topic==='advice'&&s.category==='consulting'?5:0);
+   return {s,score,evidence,highlight,learned,sameDomain};
+ }).filter(x=>x.highlight>0||x.learned>0||(x.evidence>0&&(x.sameDomain||x.evidence>=16)))
    .sort((a,b)=>b.score-a.score||b.evidence-a.evidence||a.s.fr.localeCompare(b.s.fr,'fr'));
  return scored.slice(0,6).map(x=>({...x.s,score:x.score,url:'/services/'+x.s.slug+'.html'}));
 }
