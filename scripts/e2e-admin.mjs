@@ -40,10 +40,10 @@ try {
   await page.fill('#login [name=password]', srv.owner.password); await page.fill('#login [name=totp]', code(srv.owner.secret));
   await page.click('#login button[type=submit]'); await page.waitForSelector('#app:not([hidden])');
   const ownerNav = await navLabels(page);
-  check('owner sees full navigation', ['Centre de contrôle', 'Équipe & accès', 'Journal d’audit', 'Paramètres du site', 'Mon compte', 'Prestations'].every(l => ownerNav.includes(l)), ownerNav.join(' | '));
+  check('owner sees full navigation', ['Centre de contrôle', 'Équipe & accès', 'Journal d’audit', 'Paramètres du site', 'Mon compte', 'Catalogue'].every(l => ownerNav.includes(l)), ownerNav.join(' | '));
   await page.waitForSelector('.control-hero'); await page.screenshot({ path: path.join(shots, '02-control-center.png'), fullPage: true });
   check('control center shows real KPI values', (await page.textContent('.kpis')).includes('100'));
-  for (const label of ['Statistiques', 'Sécurité & lancement', 'Prestations', 'Intelligence IA', 'Demandes', 'Contacts reçus', 'Paramètres du site', 'Journal d’audit', 'Équipe & accès', 'État du système', 'Mon compte']) {
+  for (const label of ['Statistiques', 'Sécurité & lancement', 'Catalogue', 'Intelligence IA', 'Demandes', 'Contacts reçus', 'Paramètres du site', 'Journal d’audit', 'Équipe & accès', 'État du système', 'Mon compte']) {
     await page.click(`#nav .nav-item:has(.nav-label:text-is("${label}"))`); await page.waitForTimeout(350);
     const err = await page.$('.error-box'); check(`view renders: ${label}`, !err, err ? await err.textContent() : '');
     await page.screenshot({ path: path.join(shots, `03-${label.replace(/[^a-z]/gi, '').toLowerCase()}.png`), fullPage: true });
@@ -60,7 +60,7 @@ try {
   check('verified snapshot created from the UI', /Instantané créé et vérifié/.test(await page.textContent('#toast')) || (await page.textContent('#view')).includes('Vérifié'));
 
   // service edit through the UI (owner can publish)
-  await page.click('#nav .nav-item:has(.nav-label:text-is("Prestations"))'); await page.waitForSelector('.service-list .line');
+  await page.click('#nav .nav-item:has(.nav-label:text-is("Catalogue"))'); await page.waitForSelector('.tabbar'); await page.click('.tabbar button[data-t=services]'); await page.waitForSelector('.service-list .line');
   await page.fill('input[type=search]', 'cameras'); await page.click('.service-list .line button:has-text("Modifier")'); await page.waitForSelector('form.form-grid textarea');
   await page.waitForSelector('#toast:not(.show)', { state: 'attached', timeout: 15000 });
   await page.click('form.form-grid button[type=submit]'); await page.waitForSelector('#toast.show'); check('service saved from the UI', /enregistr/i.test(await page.textContent('#toast')));
@@ -92,13 +92,33 @@ try {
   check('activation succeeds and returns to login', /Compte activé/.test(await p2.textContent('#login-message')));
   await p2.fill('#login [name=email]', 'ui-manager@example.org'); await p2.fill('#login [name=password]', STRONG); await p2.fill('#login [name=totp]', code(secret)); await p2.click('#login button[type=submit]'); await p2.waitForSelector('#app:not([hidden])');
   const mgrNav = await navLabels(p2);
-  check('manager sees operational views', ['Centre de contrôle', 'Prestations', 'Demandes'].every(l => mgrNav.includes(l)), mgrNav.join(' | '));
+  check('manager sees operational views', ['Centre de contrôle', 'Catalogue', 'Demandes'].every(l => mgrNav.includes(l)), mgrNav.join(' | '));
   check('manager does NOT see settings, audit', !mgrNav.includes('Paramètres du site') && !mgrNav.includes('Journal d’audit'));
   check('manager sees team list but no invite form', mgrNav.includes('Équipe & accès'));
   await p2.click('#nav .nav-item:has(.nav-label:text-is("Équipe & accès"))'); await p2.waitForSelector('.kpis');
   check('manager has no invitation form / actions', !(await p2.textContent('#view')).includes('Inviter un membre') && (await p2.$$('button:has-text("Réinitialiser")')).length === 0);
-  await p2.click('#nav .nav-item:has(.nav-label:text-is("Prestations"))'); await p2.waitForSelector('.service-list .line'); await p2.fill('input[type=search]', 'cameras'); await p2.click('.service-list .line button:has-text("Modifier")'); await p2.waitForSelector('form.form-grid');
-  check('manager: availability/publish controls disabled', await p2.isDisabled('form.form-grid select') && await p2.isDisabled('form.form-grid input[type=checkbox]'));
+  await p2.click('#nav .nav-item:has(.nav-label:text-is("Catalogue"))'); await p2.waitForSelector('.tabbar'); await p2.click('.tabbar button[data-t=services]'); await p2.waitForSelector('.service-list .line'); await p2.fill('input[type=search]', 'cameras');
+  check('manager sees Proposer, not direct edit', (await p2.$$('.service-list .line button:has-text("Proposer")')).length >= 1 && (await p2.$$('.service-list .line button:has-text("Modifier")')).length === 0);
+  await p2.click('.service-list .line button:has-text("Proposer")'); await p2.waitForSelector('form.form-grid');
+  check('manager: availability/publish controls disabled', await p2.isDisabled('form.form-grid select:has(option[value="Indisponible"])') && await p2.isDisabled('form.form-grid input[type=checkbox]'));
+  await p2.fill('form.form-grid input[maxlength="200"] >> nth=0', 'Caméras IP — proposition UI'); await p2.fill('form.form-grid input[placeholder^="Pourquoi"]', 'test navigateur');
+  await p2.click('form.form-grid button[type=submit]'); await p2.waitForSelector('.card:has-text("Caméras IP — proposition UI")', { timeout: 10000 });
+  const liveText = await (await fetch(srv.url + '/api/public/catalog')).text();
+  check('manager proposal lands in Brouillons and is not live', (await p2.textContent('#view')).includes('Brouillon') && !liveText.includes('proposition UI'));
+  await p2.click('button:has-text("Soumettre pour validation")'); await p2.waitForSelector('#toast.show');
+  check('manager cannot approve (no approve button)', (await p2.$$('button:has-text("Approuver")')).length === 0);
+  await page.click('#nav .nav-item:has(.nav-label:text-is("Catalogue"))'); await page.waitForSelector('.tabbar'); await page.click('.tabbar button[data-t=drafts]');
+  await page.waitForSelector('.card:has-text("proposition UI")'); await page.screenshot({ path: path.join(shots, '07b-owner-drafts.png'), fullPage: true });
+  page.once('dialog', d => d.accept('validé en test'));
+  await page.click('.card:has-text("proposition UI") button:has-text("Approuver et publier")'); await page.waitForSelector('#toast.show:has-text("approuvé")', { timeout: 10000 });
+  const liveAfter = await (await fetch(srv.url + '/api/public/catalog')).text();
+  check('owner approval publishes the proposal to the live site', liveAfter.includes('proposition UI'));
+  await page.click('.tabbar button[data-t=services]'); await page.waitForSelector('.service-list .line'); await page.fill('input[type=search]', 'cameras'); await page.click('.service-list .line:has-text("proposition UI") button:has-text("Historique")');
+  await page.waitForSelector('table:has-text("draft#")'); check('revision history shows the approved draft with its author', (await page.textContent('#view')).includes('draft#'));
+  await page.screenshot({ path: path.join(shots, '07c-history.png'), fullPage: true });
+  await page.click('.tabbar button[data-t=overview]'); await page.waitForSelector('.kpis'); await page.screenshot({ path: path.join(shots, '07d-catalogue-overview.png'), fullPage: true });
+  check('catalogue overview reports the generic Arabic descriptions', /générique/.test(await page.textContent('#view')));
+  await page.click('.tabbar button[data-t=taxo]'); await page.waitForSelector('table'); check('taxonomy tab lists inconsistent spellings', /plusieurs graphies/.test(await page.textContent('#view')));
   await p2.screenshot({ path: path.join(shots, '07-manager-services.png'), fullPage: true });
   const direct = await p2.evaluate(async () => (await fetch('/api/admin/audit', { credentials: 'same-origin' })).status);
   check('manager API call to audit is refused (403) even from the page', direct === 403);

@@ -5,8 +5,9 @@
 const PERMISSIONS = Object.freeze({
   'dashboard.view': 'Voir le centre de contrôle (agrégats, sans données personnelles)',
   'catalogue.read': 'Consulter le catalogue des prestations',
-  'catalogue.edit': 'Modifier les textes des prestations (brouillons)',
-  'catalogue.publish': 'Publier / changer la disponibilité des prestations',
+  'catalogue.edit': 'Proposer des modifications de prestations (brouillons)',
+  'catalogue.history': 'Voir qualité, doublons, taxonomie, brouillons et historique du catalogue',
+  'catalogue.publish': 'Modifier en direct, approuver les brouillons, publier et changer la disponibilité',
   'knowledge.read': 'Consulter Knowledge Studio',
   'knowledge.edit': 'Créer ou modifier concepts et relations (brouillons)',
   'knowledge.approve': 'Approuver / archiver concepts et relations',
@@ -32,7 +33,7 @@ const ALL = Object.keys(PERMISSIONS);
 const ROLES = Object.freeze({
   owner: Object.freeze([...ALL]),
   manager: Object.freeze([
-    'dashboard.view', 'catalogue.read', 'catalogue.edit', 'knowledge.read', 'knowledge.edit',
+    'dashboard.view', 'catalogue.read', 'catalogue.edit', 'catalogue.history', 'knowledge.read', 'knowledge.edit',
     'requests.view', 'requests.pii', 'requests.manage', 'requests.status',
     'technicians.read', 'technicians.manage', 'analytics.read', 'inquiries.read',
     'ai.monitor', 'system.status', 'staff.read'
@@ -74,7 +75,15 @@ const ROUTES = [
   ['GET', /^\/api\/admin\/control-center$/, 'dashboard.view'],
   ['GET', /^\/api\/admin\/overview$/, 'analytics.read'],
   ['GET', /^\/api\/admin\/services$/, 'catalogue.read'],
-  ['PUT', /^\/api\/admin\/services\/[^/]+$/, 'catalogue.edit'],
+  ['PUT', /^\/api\/admin\/services\/[^/]+$/, 'catalogue.publish'],
+  ['GET', /^\/api\/admin\/catalogue\/(?:overview|quality|duplicates|duplicate-check|taxonomy|drafts)$/, 'catalogue.history'],
+  ['GET', /^\/api\/admin\/services\/[^/]+\/revisions(?:\/[0-9]{1,6})?$/, 'catalogue.history'],
+  ['POST', /^\/api\/admin\/catalogue\/drafts$/, 'catalogue.edit'],
+  ['PUT', /^\/api\/admin\/catalogue\/drafts\/[1-9][0-9]{0,8}$/, 'catalogue.edit'],
+  ['POST', /^\/api\/admin\/catalogue\/drafts\/[1-9][0-9]{0,8}\/(?:submit|withdraw)$/, 'catalogue.edit'],
+  ['POST', /^\/api\/admin\/catalogue\/drafts\/[1-9][0-9]{0,8}\/(?:approve|reject)$/, 'catalogue.publish'],
+  ['POST', /^\/api\/admin\/catalogue\/taxonomy\/merge$/, 'catalogue.publish'],
+  ['POST', /^\/api\/admin\/services\/[^/]+\/revisions\/[0-9]{1,6}\/restore$/, 'catalogue.edit'],
   ['PUT', /^\/api\/admin\/settings$/, 'settings.write'],
   ['GET', /^\/api\/admin\/inquiries$/, 'inquiries.read'],
   ['GET', /^\/api\/admin\/audit$/, 'audit.read'],
@@ -98,7 +107,9 @@ const SENSITIVE = [
   ['POST', /^\/api\/admin\/staff\/[A-Za-z0-9-]{8,64}\/revoke-sessions$/],
   ['PUT', /^\/api\/admin\/settings$/],
   ['POST', /^\/api\/admin\/me\/migrate\/begin$/],
-  ['POST', /^\/api\/admin\/system\/backups$/]
+  ['POST', /^\/api\/admin\/system\/backups$/],
+  ['POST', /^\/api\/admin\/catalogue\/drafts\/[1-9][0-9]{0,8}\/approve$/],
+  ['POST', /^\/api\/admin\/catalogue\/taxonomy\/merge$/]
 ];
 
 function permissionFor(method, pathname) {

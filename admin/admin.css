@@ -113,6 +113,9 @@ dialog::backdrop{background:#050b17b0}
 
 .bar{height:8px;border-radius:99px;background:var(--surface-2);min-width:120px;overflow:hidden}.bar i{display:block;height:100%;background:var(--brand);border-radius:99px}.bar i.bad{background:var(--bad)}
 
+.table-wrap+.toolbar{margin-top:12px}
+.tabbar{margin-bottom:18px;overflow:auto;flex-wrap:nowrap}.tabbar .btn{white-space:nowrap}
+
 /* Responsive */
 @media (max-width:1000px){.grid.cols-3,.grid.cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){

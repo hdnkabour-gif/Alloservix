@@ -57,7 +57,8 @@ test('manager: can work on catalogue drafts and requests, but not publish, confi
   assert.equal((await c.get('/api/admin/me')).body.user.role,'manager');
   assert.equal((await c.get('/api/admin/control-center')).status,200);
   assert.equal((await c.get('/api/admin/services')).status,200);
-  assert.equal((await c.put('/api/admin/services/cameras-ip',{fr:'Caméras IP — par le gestionnaire'})).status,200,'text edit allowed');
+  const direct=await c.put('/api/admin/services/cameras-ip',{fr:'Caméras IP — par le gestionnaire'});assert.equal(direct.status,403,'managers cannot edit live content directly');assert.equal(direct.body.required,'catalogue.publish');
+  const draft=await c.post('/api/admin/catalogue/drafts',{slug:'cameras-ip',patch:{fr:'Caméras IP — proposé par le gestionnaire'}});assert.equal(draft.status,201,JSON.stringify(draft.body));
   const pub=await c.put('/api/admin/services/cameras-ip',{published:false});assert.equal(pub.status,403);assert.equal(pub.body.required,'catalogue.publish');
   assert.equal((await c.put('/api/admin/services/cameras-ip',{status:'Disponible'})).status,403,'availability change is owner-only');
   for(const [method,p,body] of [['PUT','/api/admin/settings',{site_title:'Hack'}],['POST','/api/admin/staff',{email:'z@example.org',display_name:'Zed',role:'manager'}],['GET','/api/admin/audit'],['GET','/api/admin/audit/verify'],['PUT','/api/admin/studio/concepts/1/review',{review_state:'approved'}]]){
@@ -74,6 +75,45 @@ test('services whose slug contains accents can be read and edited (URL-encoded)'
   assert.equal((await new Client(srv.url).get('/api/public/service/'+enc)).status,200);
   const r=await owner.put('/api/admin/services/'+enc,{fr:'Caméras analogiques HD et DVR'});assert.equal(r.status,200,JSON.stringify(r.body));
   assert.equal((await owner.put('/api/admin/services/%E0%A4%A',{fr:'x'})).status,400,'malformed escape rejected cleanly');
+});
+
+test('catalogue workflow over HTTP: propose -> submit -> owner approves; duplicates, conflicts, history, taxonomy',async()=>{
+  const m=await staff('manager','Catman'),c=await login(m);
+  const slug='ocr-documents';
+  const live=(await new Client(srv.url).get('/api/public/service/'+slug)).body;
+  const d=await c.post('/api/admin/catalogue/drafts',{slug,patch:{desc:'Nouvelle description proposée pour la reconnaissance de documents, détaillée.'},note:'texte'});assert.equal(d.status,201,JSON.stringify(d.body));
+  assert.equal((await c.post('/api/admin/catalogue/drafts',{slug,patch:{published:false}})).status,400,'publication flags cannot be proposed');
+  assert.equal((await c.post(`/api/admin/catalogue/drafts/${d.body.draft.id}/approve`,{})).status,403,'manager cannot approve');
+  assert.equal((await c.post(`/api/admin/catalogue/drafts/${d.body.draft.id}/submit`,{})).status,200);
+  assert.equal((await new Client(srv.url).get('/api/public/service/'+slug)).body.desc,live.desc,'public site unchanged while pending');
+  const pending=await owner.get('/api/admin/catalogue/drafts?status=pending_review');assert.ok(pending.body.drafts.some(x=>x.id===d.body.draft.id));
+  const ok=await owner.post(`/api/admin/catalogue/drafts/${d.body.draft.id}/approve`,{note:'ok'});assert.equal(ok.status,200,JSON.stringify(ok.body));
+  assert.match((await new Client(srv.url).get('/api/public/service/'+slug)).body.desc,/Nouvelle description proposée/);
+  const revs=await c.get(`/api/admin/services/${slug}/revisions`);assert.equal(revs.status,200);assert.equal(revs.body.revisions[0].source,'draft#'+d.body.draft.id);assert.equal(revs.body.revisions[0].actor,srv.owner.email);
+  const detail=await c.get(`/api/admin/services/${slug}/revisions/${revs.body.revisions[0].rev}`);assert.deepEqual(detail.body.revision.diff_vs_previous.map(x=>x.field),['desc']);
+  const rest=await c.post(`/api/admin/services/${slug}/revisions/1/restore`,{});assert.equal(rest.status,201);assert.equal(rest.body.draft.status,'draft');
+  // duplicates: direct edit and Knowledge-Studio creation both refuse a clone; owner can force creation
+  const wifi=(await owner.get('/api/admin/services')).body.services.find(x=>x.slug==='wifi-professionnel');
+  const dup=await owner.put('/api/admin/services/cameras-ip',{fr:wifi.fr});assert.equal(dup.status,409);assert.equal(dup.body.code,'duplicate');assert.equal(dup.body.candidates[0].slug,'wifi-professionnel');
+  const clone={slug:'wifi-pro-clone',category:wifi.category,fr:wifi.fr,ar:'عنوان مختلف',desc:'Description',desc_ar:'وصف',terms:'wifi',technologies:[],includes:[],problems:[]};
+  assert.equal((await owner.post('/api/admin/studio/services',clone)).status,409);
+  assert.equal((await c.post('/api/admin/studio/services',{...clone,force_duplicate:true})).status,409,'manager cannot force');
+  const forced=await owner.post('/api/admin/studio/services',{...clone,force_duplicate:true});assert.equal(forced.status,201,JSON.stringify(forced.body));
+  assert.equal((await new Client(srv.url).get('/api/public/service/wifi-pro-clone')).status,404,'created hidden');
+  assert.ok((await owner.get('/api/admin/services/wifi-pro-clone/revisions')).body.revisions[0].source==='created');
+  const chk=await c.get('/api/admin/catalogue/duplicate-check?fr='+encodeURIComponent(wifi.fr));assert.ok(chk.body.candidates.length>=1);
+  // analytics endpoints
+  assert.ok((await c.get('/api/admin/catalogue/overview')).body.languages.ar.generic>=60);
+  const tax=await c.get('/api/admin/catalogue/taxonomy');assert.ok(tax.body.inconsistent>=10);
+  assert.equal((await c.post('/api/admin/catalogue/taxonomy/merge',{from:['a'],to:'b'})).status,403,'merging is owner-only');
+  const t=tax.body.technologies.find(x=>x.inconsistent),names=t.variants.map(v=>v.name);
+  const mg=await owner.post('/api/admin/catalogue/taxonomy/merge',{from:names,to:names[0]});assert.equal(mg.status,200,JSON.stringify(mg.body));assert.ok(mg.body.services_updated>=1);
+  assert.ok((await owner.get('/api/admin/catalogue/quality')).body.checked>=100);
+  // technicians see none of the governance data
+  const tt=await owner.post('/api/admin/ops/technicians',{privacy_consent:true,name:'Cat Tech',city:'Fès',phone:'+212600000055',years_experience:1,capacity:1,level:'junior',verification_status:'pending',contract_status:'pending',availability_status:'unavailable',onsite_available:true,skills:[]});
+  const tc=await login(await staff('technician','Cattech',{technician_id:tt.body.technician.id}));
+  for(const p of ['/api/admin/catalogue/overview','/api/admin/catalogue/drafts','/api/admin/catalogue/taxonomy','/api/admin/services/ocr-documents/revisions'])assert.equal((await tc.get(p)).status,403,p);
+  assert.equal((await tc.get('/api/admin/services')).status,200,'technicians keep read-only catalogue');
 });
 
 test('owner can publish; changing availability is audited',async()=>{
