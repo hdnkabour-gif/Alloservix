@@ -5,12 +5,12 @@
 // - honest checklist of unfinished / unverified items
 // - domain check: what the outside world sees (DNS, TLS certificate, Railway routing)
 // - owner-triggered, verified SQLite snapshots (same volume, no download endpoint)
-const fs = require('node:fs'), path = require('node:path'), tls = require('node:tls'), https = require('node:https'), dns = require('node:dns').promises;
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), { spawn } = require('node:child_process'), net = require('node:net'), backupCrypto = require('./backup-crypto'), tls = require('node:tls'), https = require('node:https'), dns = require('node:dns').promises;
 
 const HOUR = 3600000;
 const ENV_PRESENCE = ['NODE_ENV', 'DATA_DIR', 'ALLO_DATA_KEY', 'ADMIN_EMAIL', 'ADMIN_PASSWORD_HASH', 'ADMIN_TOTP_SECRET', 'ENABLE_ANALYTICS', 'ENABLE_INQUIRIES', 'ENABLE_REQUESTS', 'ENABLE_AI',
-  'ENABLE_IMAGE_INTENT', 'ENABLE_AUDIO_INTENT', 'AI_PROVIDER_ORDER', 'AI_DAILY_LIMIT', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'ANTHROPIC_API_KEY', 'DEEPSEEK_API_KEY', 'PUBLIC_DOMAINS', 'RAILWAY_PUBLIC_DOMAIN'];
-const BOOLEAN_FLAGS = ['ENABLE_ANALYTICS', 'ENABLE_INQUIRIES', 'ENABLE_REQUESTS', 'ENABLE_AI', 'ENABLE_IMAGE_INTENT', 'ENABLE_AUDIO_INTENT'];
+  'ENABLE_IMAGE_INTENT', 'ENABLE_AUDIO_TRANSCRIPTION', 'AI_PROVIDER_ORDER', 'AI_DAILY_LIMIT', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'ANTHROPIC_API_KEY', 'DEEPSEEK_API_KEY', 'PUBLIC_DOMAINS', 'RAILWAY_PUBLIC_DOMAIN'];
+const BOOLEAN_FLAGS = ['ENABLE_ANALYTICS', 'ENABLE_INQUIRIES', 'ENABLE_REQUESTS', 'ENABLE_AI', 'ENABLE_IMAGE_INTENT', 'ENABLE_AUDIO_TRANSCRIPTION'];
 
 function redact(text) {
   return String(text || '')
@@ -33,6 +33,7 @@ const percentile = (arr, q) => { if (!arr.length) return 0; const s = [...arr].s
 function createMonitor({ db, dbFile, auth, env = process.env, now = Date.now, startedAt = now(), tlsOptions = {} }) {
   db.exec(`CREATE TABLE IF NOT EXISTS error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, method TEXT NOT NULL, route TEXT NOT NULL, status INTEGER NOT NULL, message TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS idx_error_log_at ON error_log(at);
+    CREATE TABLE IF NOT EXISTS backup_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, file TEXT NOT NULL, ok INTEGER NOT NULL, report TEXT NOT NULL, actor TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS backup_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, file TEXT NOT NULL, bytes INTEGER NOT NULL, integrity TEXT NOT NULL, rows_json TEXT NOT NULL, actor TEXT NOT NULL);`);
   const buckets = new Map(), latencies = [];
   const dataDir = path.dirname(dbFile), backupDir = path.join(dataDir, 'backups');
@@ -109,6 +110,10 @@ function createMonitor({ db, dbFile, auth, env = process.env, now = Date.now, st
     if (ctx.flags.ai && ctx.providersConfigured === 0) add('ai-no-key', 'warning', 'Intelligence', 'IA activée sans clé de fournisseur', 'ENABLE_AI=true mais aucune clé n’est configurée.');
     if (errorsSince(HOUR) >= 5) add('errors-hour', 'critical', 'Fiabilité', `${errorsSince(HOUR)} erreurs serveur sur la dernière heure`, 'Consulter la liste des erreurs récentes.');
     else if (errorsSince(24 * HOUR) > 0) add('errors-day', 'warning', 'Fiabilité', `${errorsSince(24 * HOUR)} erreur(s) serveur sur 24 h`, 'Consulter la liste des erreurs récentes.');
+    const lastCheck = db.prepare('SELECT at,ok FROM backup_checks ORDER BY id DESC LIMIT 1').get();
+    if (!lastCheck) add('no-restore-drill', 'warning', 'Données', 'Aucun test de restauration réalisé', 'Une copie jamais restaurée n’est pas une sauvegarde : lancez « Tester la restauration » sur un instantané.');
+    else if (!lastCheck.ok) add('restore-drill-failed', 'critical', 'Données', 'Le dernier test de restauration a échoué', lastCheck.at);
+    else if (now() - Date.parse(lastCheck.at) > 30 * 24 * HOUR) add('restore-drill-old', 'warning', 'Données', 'Dernier test de restauration de plus de 30 jours', lastCheck.at);
     const lastBackup = db.prepare('SELECT at,integrity FROM backup_log ORDER BY id DESC LIMIT 1').get();
     if (!lastBackup) add('no-backup', 'warning', 'Données', 'Aucun instantané vérifié de la base', 'Créez un instantané (propriétaire) et configurez aussi les sauvegardes du volume Railway.');
     else if (now() - Date.parse(lastBackup.at) > 7 * 24 * HOUR) add('old-backup', 'warning', 'Données', 'Dernier instantané vérifié de plus de 7 jours', lastBackup.at);
@@ -177,9 +182,55 @@ function createMonitor({ db, dbFile, auth, env = process.env, now = Date.now, st
     for (const old of mine.slice(0, Math.max(0, mine.length - 5))) { try { fs.unlinkSync(path.join(backupDir, old)); } catch { /* ignore */ } }
     return listSnapshots()[0];
   }
-  const listSnapshots = () => db.prepare('SELECT id,at,file,bytes,integrity,rows_json,actor FROM backup_log ORDER BY id DESC LIMIT 20').all().map(r => ({ ...r, rows: JSON.parse(r.rows_json), rows_json: undefined, present: fs.existsSync(path.join(backupDir, r.file)) }));
+  const lastCheckOf = file => { const c = db.prepare('SELECT at,ok,report,actor FROM backup_checks WHERE file=? ORDER BY id DESC LIMIT 1').get(file); return c ? { at: c.at, ok: Boolean(c.ok), actor: c.actor, steps: JSON.parse(c.report).steps } : null; };
+  const listSnapshots = () => db.prepare('SELECT id,at,file,bytes,integrity,rows_json,actor FROM backup_log ORDER BY id DESC LIMIT 20').all().map(r => ({ ...r, rows: JSON.parse(r.rows_json), rows_json: undefined, present: fs.existsSync(path.join(backupDir, r.file)), restore_check: lastCheckOf(r.file) }));
+  const snapshotPath = name => { if (!SNAP_RE.test(String(name))) throw Object.assign(new Error('Nom d’instantané invalide'), { public: true, status: 400 }); const f = path.join(backupDir, name); if (!fs.existsSync(f)) throw Object.assign(new Error('Instantané introuvable (supprimé par la rotation ?)'), { public: true, status: 404 }); return f; };
+  const freePort = () => new Promise((resolve, reject) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)); }); s.on('error', reject); });
+  // Restore drill in isolation: copy the snapshot to a private temp dir, check it, decrypt samples with the CURRENT key, then BOOT the real
+  // application on it (random local port) and query it. The live database is never touched.
+  async function verifyRestore(name, actor, { DatabaseSync, probe = {} }) {
+    const t0 = now(), steps = [], step = (n, ok, detail = '') => { steps.push({ name: n, ok: Boolean(ok), detail: String(detail).slice(0, 240) }); return ok; };
+    const src = snapshotPath(name), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'allo-restore-')), dest = path.join(tmp, 'alloservix.sqlite');
+    let child = null;
+    try {
+      fs.copyFileSync(src, dest); fs.chmodSync(dest, 0o600); step('Copie isolée du snapshot', true, size(dest) + ' octets');
+      const conn = new DatabaseSync(dest, { readOnly: true });
+      try {
+        const integ = conn.prepare('PRAGMA integrity_check').get().integrity_check; step('integrity_check SQLite', integ === 'ok', integ);
+        const fk = conn.prepare('PRAGMA foreign_key_check').all(); step('Clés étrangères cohérentes', fk.length === 0, fk.length ? fk.length + ' violation(s)' : '');
+        const log = db.prepare('SELECT rows_json FROM backup_log WHERE file=?').get(name), now_ = rowCounts(conn), expected = log ? JSON.parse(log.rows_json) : null;
+        step('Comptages identiques à ceux enregistrés à la création', expected && KEY_TABLES.every(t => now_[t] === expected[t]), JSON.stringify(now_));
+        const sample = (sql, fn) => { let n = 0, ok = 0; try { for (const r of conn.prepare(sql).all()) { n++; if (fn(r)) ok++; } } catch { /* table absent */ } return { n, ok }; };
+        const rq = sample("SELECT private_data p FROM service_requests LIMIT 5", r => probe.request?.(r.p)), iq = sample("SELECT enc e FROM inquiries WHERE enc<>'' LIMIT 5", r => probe.inquiry?.(r.e)), st = sample("SELECT id,totp_secret s FROM staff_accounts WHERE totp_secret<>'' LIMIT 5", r => probe.staff?.(r.s, r.id));
+        step('Données chiffrées lisibles avec la clé actuelle (ALLO_DATA_KEY)', rq.ok === rq.n && iq.ok === iq.n && st.ok === st.n, `demandes ${rq.ok}/${rq.n} · contacts ${iq.ok}/${iq.n} · secrets MFA ${st.ok}/${st.n}`);
+        var services = conn.prepare('SELECT count(*) n FROM services').get().n, staffActive = conn.prepare("SELECT count(*) n FROM staff_accounts WHERE status='active'").get().n;
+      } finally { conn.close(); }
+      // boot the real server on the restored copy
+      const port = await freePort(), childEnv = { PATH: process.env.PATH || '', PORT: String(port), DATA_DIR: tmp, NODE_ENV: 'test', ALLO_DATA_KEY: env.ALLO_DATA_KEY || '' };
+      child = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: childEnv, stdio: ['ignore', 'ignore', 'pipe'] });
+      let errs = ''; child.stderr.on('data', d => { errs += d.toString().slice(0, 500); });
+      let up = false; for (let i = 0; i < 100 && child.exitCode === null; i++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { up = true; break; } } catch { /* retry */ } await new Promise(r => setTimeout(r, 100)); }
+      step('L’application démarre sur la copie restaurée', up, up ? '' : redact(errs));
+      if (up) {
+        const cat = await (await fetch(`http://127.0.0.1:${port}/api/public/catalog`)).json(); step('Catalogue servi depuis la copie', cat.services.length >= 1 && cat.categories.length >= 1, `${cat.services.length} prestations publiées`);
+        const ses = await (await fetch(`http://127.0.0.1:${port}/api/admin/session`)).json();
+        // A copy restored alone only lets people in through its own staff accounts; the initial owner lives in Railway variables (ADMIN_*), which survive a restore.
+        step('Écran de connexion opérationnel (comptes présents)', ses.authenticated === false && (staffActive > 0 || probe.envOwner === true), staffActive > 0 ? `${staffActive} compte(s) actif(s) dans la copie` : probe.envOwner === true ? 'Aucun compte intégré dans la copie : la connexion dépend des variables Railway ADMIN_EMAIL / ADMIN_PASSWORD_HASH / ADMIN_TOTP_SECRET (à conserver séparément)' : 'AUCUN moyen de se connecter après restauration (pas de compte intégré, pas de propriétaire Railway)');
+        void services;
+      }
+    } catch (e) { step('Erreur pendant le test', false, e.message); }
+    finally {
+      if (child) { child.kill(); await new Promise(r => setTimeout(r, 150)); }
+      if (tmp.startsWith(path.join(os.tmpdir(), 'allo-restore-'))) fs.rmSync(tmp, { recursive: true, force: true });
+    }
+    const ok = steps.length > 0 && steps.every(s => s.ok), report = { ok, steps, duration_ms: now() - t0, scope: 'Copie isolée : la base en production n’a pas été touchée.' };
+    db.prepare('INSERT INTO backup_checks(at,file,ok,report,actor) VALUES(?,?,?,?,?)').run(new Date(now()).toISOString(), name, ok ? 1 : 0, JSON.stringify(report), String(actor || '').slice(0, 160));
+    return report;
+  }
+  // Passphrase-encrypted export for an off-volume copy (returns a Buffer; the passphrase is never stored).
+  function exportSnapshot(name, passphrase) { const f = snapshotPath(name); if (size(f) > 100 * 1024 * 1024) throw Object.assign(new Error('Instantané trop volumineux pour l’export en ligne'), { public: true, status: 413 }); return backupCrypto.encryptBuffer(fs.readFileSync(f), passphrase); }
 
-  return { recordRequest, recordError, metrics, recentErrors, errorsSince, storage, runtime, environment, checklist, domainCheck, createSnapshot, listSnapshots, domains, redact, normalizeRoute, classify };
+  return { verifyRestore, exportSnapshot, recordRequest, recordError, metrics, recentErrors, errorsSince, storage, runtime, environment, checklist, domainCheck, createSnapshot, listSnapshots, domains, redact, normalizeRoute, classify };
 }
 
 module.exports = { createMonitor, redact, normalizeRoute, classify };

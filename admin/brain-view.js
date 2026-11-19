@@ -5,7 +5,7 @@
   const pct = v => v === null || v === undefined ? '—' : Math.round(v * 100) + ' %';
   const CONF = { high: ['Haute', 'ok'], medium: ['Moyenne', 'info'], low: ['Faible', 'warn'], none: ['Aucune correspondance', 'bad'] };
   const AI = { not_requested: 'Non demandée', ok: 'Réussie', failed: 'Échec fournisseurs', quota_exhausted: 'Quota quotidien atteint', disabled: 'Demandée mais désactivée' };
-  const ERR = { timeout: 'Délai dépassé', network: 'Réseau', invalid_output: 'Réponse invalide', circuit_open: 'Circuit ouvert (suspendu)', http_429: 'HTTP 429 (limite)', http_401: 'HTTP 401 (clé refusée)', http_403: 'HTTP 403', http_500: 'HTTP 500', http_503: 'HTTP 503' };
+  const ERR = { timeout: 'Délai dépassé', network: 'Réseau', invalid_output: 'Réponse invalide', circuit_open: 'Circuit ouvert (suspendu)', budget_exhausted: 'Budget du fournisseur atteint (appel évité)', http_429: 'HTTP 429 (limite)', http_401: 'HTTP 401 (clé refusée)', http_403: 'HTTP 403', http_500: 'HTTP 500', http_503: 'HTTP 503' };
   const bar = (v, max, bad) => { const b = el('div', 'bar'), i = el('i'); i.style.width = Math.max(2, Math.round(100 * v / Math.max(1, max))) + '%'; if (bad) i.classList.add('bad'); b.append(i); return b; };
 
   async function render(root) {

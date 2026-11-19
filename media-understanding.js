@@ -27,6 +27,27 @@ function parseDataUrl(raw,kind){if(typeof raw!=='string')throw Error('invalid me
  if(!ok)throw Error('media signature mismatch');
  return {mime,bytes,base64:match[2],url:raw};
 }
+// Server-side privacy hardening: drop metadata (EXIF/GPS, XMP, text chunks, ICC) before anything leaves for a provider.
+// This does not hide what is visible in the picture itself: the client must crop and the visitor must not photograph documents/screens with secrets.
+function stripJpeg(b){if(b[0]!==0xFF||b[1]!==0xD8)return b;const out=[b.subarray(0,2)];let i=2;
+ while(i+2<=b.length){if(b[i]!==0xFF){out.push(b.subarray(i));break}const m=b[i+1];
+  if(m===0xDA||m===0xD9){out.push(b.subarray(i));break}
+  if(m===0xFF){out.push(b.subarray(i,i+1));i+=1;continue}
+  if((m>=0xD0&&m<=0xD7)||m===0x01){out.push(b.subarray(i,i+2));i+=2;continue}
+  if(i+4>b.length){out.push(b.subarray(i));break}
+  const len=b.readUInt16BE(i+2);if(len<2||i+2+len>b.length){out.push(b.subarray(i));break}
+  if(!((m>=0xE1&&m<=0xEF)||m===0xFE))out.push(b.subarray(i,i+2+len));i+=2+len}
+ return Buffer.concat(out)}
+function stripPng(b){const sig=b.subarray(0,8),out=[sig],drop=new Set(['eXIf','tEXt','zTXt','iTXt','tIME']);let i=8;
+ while(i+12<=b.length){const len=b.readUInt32BE(i),type=b.toString('ascii',i+4,i+8),end=i+12+len;if(end>b.length){out.push(b.subarray(i));break}if(!drop.has(type))out.push(b.subarray(i,end));i=end}
+ if(i<b.length&&b.length-i<12)out.push(b.subarray(i));return Buffer.concat(out)}
+function stripWebp(b){const out=[b.subarray(0,12)];let i=12;
+ while(i+8<=b.length){const type=b.toString('ascii',i,i+4),len=b.readUInt32LE(i+4),end=i+8+len+(len&1);if(end>b.length+1){out.push(b.subarray(i));break}
+  if(type==='EXIF'||type==='XMP ')i=Math.min(end,b.length);else{const c=Buffer.from(b.subarray(i,Math.min(end,b.length)));if(type==='VP8X'&&c.length>8)c[8]&=~(0x08|0x04);out.push(c);i=Math.min(end,b.length)}}
+ const r=Buffer.concat(out);r.writeUInt32LE(r.length-8,4);return r}
+function stripImageMetadata(image){let bytes=image.bytes;
+ try{bytes=image.mime==='image/jpeg'?stripJpeg(image.bytes):image.mime==='image/png'?stripPng(image.bytes):stripWebp(image.bytes)}catch{bytes=image.bytes}
+ const base64=bytes.toString('base64');return {...image,bytes,base64,url:'data:'+image.mime+';base64,'+base64,stripped_bytes:image.bytes.length-bytes.length}}
 function visionProviders(env=process.env){return ['gemini','openai','anthropic'].filter(p=>Boolean(env[{gemini:'GEMINI_API_KEY',openai:'OPENAI_API_KEY',anthropic:'ANTHROPIC_API_KEY'}[p]]));}
 function imageEnabled(env=process.env){return env.ENABLE_IMAGE_INTENT==='true'&&visionProviders(env).length>0;}
 function audioProviders(env=process.env){return ['openai','gemini'].filter(p=>Boolean(env[{openai:'OPENAI_API_KEY',gemini:'GEMINI_API_KEY'}[p]]));}
@@ -51,17 +72,17 @@ function imageText(observation,lang='fr'){const ar=lang==='ar',obj=observation.d
  return ar?'قد تكون الصورة فيها '+obj+'؛ الملاحظة: '+signs+'. أريد التحقق من المشكل.': 'La photo semble montrer : '+obj+' ; indice : '+signs+'. Je souhaite faire vérifier ce besoin.';}
 const evUsage=(provider,d)=>{try{if(provider==='gemini')return {in:d.usageMetadata?.promptTokenCount??null,out:d.usageMetadata?.candidatesTokenCount??null};return {in:d.usage?.input_tokens??null,out:d.usage?.output_tokens??null}}catch{return {in:null,out:null}}};
 const evError=e=>e&&e.name==='AbortError'?'timeout':e&&/^http_\d{3}$/.test(e.code||'')?e.code:e instanceof TypeError?'network':'invalid_output';
-async function analyzeImage(raw,{env=process.env,fetchImpl=fetch,lang='fr',onEvent=()=>{}}={}){if(!imageEnabled(env))return null;
- const image=parseDataUrl(raw,'image');const order=String(env.AI_PROVIDER_ORDER||'gemini,openai,anthropic,deepseek').split(',').map(s=>s.trim());const enabled=visionProviders(env);const providers=[...new Set([...order,...enabled])].filter(x=>enabled.includes(x));
- const deadline=Date.now()+8500;for(const provider of providers){const remaining=deadline-Date.now();if(remaining<400)break;
+async function analyzeImage(raw,{env=process.env,fetchImpl=fetch,lang='fr',onEvent=()=>{},allowProvider=()=>true}={}){if(!imageEnabled(env))return null;
+ const image=stripImageMetadata(parseDataUrl(raw,'image'));const order=String(env.AI_PROVIDER_ORDER||'gemini,openai,anthropic,deepseek').split(',').map(s=>s.trim());const enabled=visionProviders(env);const providers=[...new Set([...order,...enabled])].filter(x=>enabled.includes(x));
+ const deadline=Date.now()+8500;for(const provider of providers){const remaining=deadline-Date.now();if(remaining<400)break;if(!allowProvider(provider)){onEvent({provider,ok:false,error:'budget_exhausted',ms:0});continue}
  const q=visionPayload(provider,image,env),abort=new AbortController(),timer=setTimeout(()=>abort.abort(),Math.min(3100,remaining));
  const t0=Date.now();try{const r=await fetchImpl(q.url,{method:'POST',headers:{'Content-Type':'application/json',...q.headers},body:JSON.stringify(q.body),signal:abort.signal});if(!r.ok){onEvent({provider,ok:false,error:'http_'+r.status,ms:Date.now()-t0});continue}
  const body=await r.json();const observed=validate(extract(provider,body));onEvent({provider,ok:true,ms:Date.now()-t0,usage:evUsage(provider,body)});return {observed,suggested_text:imageText(observed,lang),needs_confirmation:true,source:'external-vision-observation',provider};}
  catch(e){onEvent({provider,ok:false,error:evError(e),ms:Date.now()-t0})}finally{clearTimeout(timer)}
  }return null;}
-async function transcribeAudio(raw,{env=process.env,fetchImpl=fetch,onEvent=()=>{}}={}){if(!audioEnabled(env))return null;
+async function transcribeAudio(raw,{env=process.env,fetchImpl=fetch,onEvent=()=>{},allowProvider=()=>true}={}){if(!audioEnabled(env))return null;
  const media=parseDataUrl(raw,'audio');const configured=audioProviders(env);
- for(const provider of configured){const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),7000),t0=Date.now();
+ for(const provider of configured){if(!allowProvider(provider)){onEvent({provider,ok:false,error:'budget_exhausted',ms:0});continue}const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),7000),t0=Date.now();
  try{let url,headers,body;
  if(provider==='openai'){url='https://api.openai.com/v1/audio/transcriptions';headers={Authorization:'Bearer '+env.OPENAI_API_KEY};body=new FormData();body.append('model',env.OPENAI_TRANSCRIBE_MODEL||'gpt-4o-mini-transcribe');body.append('file',new Blob([media.bytes],{type:media.mime}),'recording.'+({ 'audio/webm':'webm','audio/mp4':'m4a','audio/wav':'wav','audio/ogg':'ogg'}[media.mime]));body.append('response_format','json');}
  else{url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(env.GEMINI_AUDIO_MODEL||env.GEMINI_MODEL||'gemini-2.5-flash')+':generateContent';headers={'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY};body=JSON.stringify({contents:[{parts:[{inlineData:{mimeType:media.mime,data:media.base64}},{text:'Transcribe the spoken words exactly, including Moroccan Darija mixed with French, Arabic and English. No advice. No explanations.'}]}],generationConfig:{maxOutputTokens:450,temperature:0}});}
@@ -71,4 +92,4 @@ async function transcribeAudio(raw,{env=process.env,fetchImpl=fetch,onEvent=()=>
  onEvent({provider,ok:true,ms:Date.now()-t0,usage:evUsage(provider,j)});return {transcript:transcript.trim().slice(0,500),needs_confirmation:true,provider,source:'external-speech-transcription'};
  }catch(e){onEvent({provider,ok:false,error:evError(e),ms:Date.now()-t0})}finally{clearTimeout(timer)}
  }return null;}
-module.exports={IMG_MAX,AUD_MAX,parseDataUrl,imageEnabled,audioEnabled,validate,imageText,analyzeImage,transcribeAudio};
+module.exports={stripImageMetadata,IMG_MAX,AUD_MAX,parseDataUrl,imageEnabled,audioEnabled,validate,imageText,analyzeImage,transcribeAudio};

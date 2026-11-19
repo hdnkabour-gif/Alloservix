@@ -9,7 +9,14 @@ const limits={timeoutMs:2400,totalMs:7600,maxProviders:4,openMs:60000};
 function configured(env=process.env){return PROVIDERS.filter(p=>Boolean(env[{openai:'OPENAI_API_KEY',gemini:'GEMINI_API_KEY',anthropic:'ANTHROPIC_API_KEY',deepseek:'DEEPSEEK_API_KEY'}[p]]));}
 function enabled(env=process.env){return env.ENABLE_AI==='true'&&configured(env).length>0;}
 function order(env=process.env){const candidates=String(env.AI_PROVIDER_ORDER||'openai,gemini,anthropic,deepseek').split(',').map(x=>x.trim().toLowerCase());return [...new Set(candidates)].filter(x=>PROVIDERS.includes(x)&&configured(env).includes(x));}
-function sanitize(query){return String(query||'').slice(0,500)
+function sanitize(query){return String(query||'').slice(0,300)
+ .replace(/https?:\/\/\S+|www\.\S+/gi,'[lien]')
+ .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{2,4}){3,8}\b/g,'[iban]')
+ .replace(/\b\d(?:[ -]?\d){12,18}\b/g,'[numero]')
+ .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g,'[ip]')
+ .replace(/\b(?:m\.|mr|mme|mlle|monsieur|madame|mademoiselle|sidi|lalla|السيد|السيدة|الأستاذ|الأستاذة)\s+\p{Lu}[\p{L}'-]{2,}(?:\s+\p{Lu}[\p{L}'-]{2,})?/giu,'[nom]')
+ .replace(/(?:je m'appelle|je suis|mon nom est|my name is|i am|اسمي|سميتي|انا)\s+\p{L}[\p{L}'-]{2,}(?:\s+\p{L}[\p{L}'-]{2,})?/giu,'[nom]')
+ .replace(/(?:adresse|address|عنواني|العنوان)\s*[:：]?\s*[^.;\n]{5,80}/giu,'[adresse]')
  .replace(/(?:[\w.+-]+@[\w.-]+\.[a-z]{2,})/gi,'[email]')
  .replace(/(?:\+?\d[\d ()\-.]{7,}\d)/g,'[telephone]')
  .replace(/(?:\b(?:password|mot de passe|كلمة السر|token|api key|secret)\b\s*[:=]\s*\S+)/gi,'[secret]')
@@ -44,11 +51,12 @@ function validate(raw,rows){if(!raw||typeof raw!=='object'||Array.isArray(raw))t
 const usageOf=(provider,d)=>{try{if(provider==='gemini')return {in:d.usageMetadata?.promptTokenCount??null,out:d.usageMetadata?.candidatesTokenCount??null};if(provider==='deepseek')return {in:d.usage?.prompt_tokens??null,out:d.usage?.completion_tokens??null};return {in:d.usage?.input_tokens??null,out:d.usage?.output_tokens??null}}catch{return {in:null,out:null}}};
 const errorCode=e=>e&&e.name==='AbortError'?'timeout':e&&/^http_\d{3}$/.test(e.code||'')?e.code:e instanceof TypeError?'network':'invalid_output';
 function breakers(state=breaker,clock=Date.now){return PROVIDERS.map(p=>{const c=state.get(p)||{fails:0,until:0};return {provider:p,state:c.until>clock()?'open':'closed',consecutive_failures:c.fails,reopens_in_seconds:c.until>clock()?Math.ceil((c.until-clock())/1000):0}})}
-async function classify(query,rows,{env=process.env,fetchImpl=fetch,clock=Date.now,breakerState=breaker,onEvent=()=>{}}={}){
+async function classify(query,rows,{env=process.env,fetchImpl=fetch,clock=Date.now,breakerState=breaker,onEvent=()=>{},allowProvider=()=>true}={}){
  if(!enabled(env))return null;
  const deadline=clock()+limits.totalMs;
  for(const provider of order(env).slice(0,limits.maxProviders)){
   const circuit=breakerState.get(provider)||{fails:0,until:0};if(circuit.until>clock()){onEvent({provider,ok:false,error:'circuit_open',ms:0});continue}
+  if(!allowProvider(provider)){onEvent({provider,ok:false,error:'budget_exhausted',ms:0});continue}
   const remaining=deadline-clock();if(remaining<=0)break;
   const options=payload(provider,query,rows,env);const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),Math.min(limits.timeoutMs,remaining));
   const started=clock();

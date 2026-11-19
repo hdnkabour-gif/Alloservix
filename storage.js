@@ -62,6 +62,16 @@ function updateService(slug, updates, meta={}){const current=getService(slug);if
 }
 const revisions=slug=>db.prepare('SELECT id,rev,at,actor,actor_role,source,note,changed FROM service_revisions WHERE slug=? ORDER BY rev DESC LIMIT 200').all(slug).map(r=>({...r,changed:JSON.parse(r.changed)}));
 const revision=(slug,rev)=>{const r=db.prepare('SELECT * FROM service_revisions WHERE slug=? AND rev=?').get(slug,rev);return r?{...r,changed:JSON.parse(r.changed),snapshot:JSON.parse(r.snapshot)}:null};
+const SETTING_KEYS=['site_title','site_subtitle','contact_whatsapp','contact_email','contact_location'];
+const publicError=(m)=>{const e=new Error(m);e.public=true;e.status=400;return e};
+// Atomic: every key and value is validated first; the write and its audit entry happen in one savepoint.
+function updateSettings(obj,onCommit){
+  if(typeof obj!=='object'||!obj||Array.isArray(obj)||!Object.keys(obj).length)throw publicError('Corps invalide : un objet de paramètres est requis');
+  for(const [k,v] of Object.entries(obj)){if(!SETTING_KEYS.includes(k))throw publicError('Clé non autorisée : '+String(k).slice(0,40));if(typeof v!=='string'||v.length>180)throw publicError('Valeur non valide pour '+k)}
+  db.exec('SAVEPOINT settings_update');
+  try{for(const [k,v] of Object.entries(obj))db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(k,v);if(onCommit)onCommit(Object.keys(obj));db.exec('RELEASE settings_update')}
+  catch(e){db.exec('ROLLBACK TO settings_update');db.exec('RELEASE settings_update');throw e}
+}
 const updateSetting=(key,value)=>{if(!['site_title','site_subtitle','contact_whatsapp','contact_email','contact_location'].includes(key))throw new Error('Clé non autorisée');if(typeof value!=='string'||value.length>180)throw new Error('Valeur non valide');db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,value)};
 function ensureColumn(table,col,def){if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name===col))db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`)}
 for(const [col,def] of [['actor_id',"TEXT NOT NULL DEFAULT ''"],['actor_role',"TEXT NOT NULL DEFAULT ''"],['prev_hash',"TEXT NOT NULL DEFAULT ''"],['row_hash',"TEXT NOT NULL DEFAULT ''"]])ensureColumn('audit',col,def);
@@ -89,6 +99,11 @@ function analytics(days=30){const since=`-${days} days`;
   const daily=db.prepare("SELECT substr(at,1,10) date,count(DISTINCT visitor) visitors FROM events WHERE at>=datetime('now',?) GROUP BY substr(at,1,10) ORDER BY date").all(since);
   return {days,events:n,visitors:sessions,kinds:counts,pages,searches,exits,depths,campaigns,daily};
 }
+// Inquiries: personal data lives in `enc` (AES-GCM, key derived from ALLO_DATA_KEY). Legacy plaintext rows keep enc=''.
+ensureColumn('ai_usage','kind',"TEXT NOT NULL DEFAULT 'text'");
+ensureColumn('inquiries','enc',"TEXT NOT NULL DEFAULT ''");
+// Optional retention: only runs when the deployer sets INQUIRY_RETENTION_DAYS (30..3650). Returns the number of rows purged.
+function purgeInquiries(days){days=Number(days);if(!Number.isInteger(days)||days<30||days>3650)return 0;const cut=new Date(Date.now()-days*86400000).toISOString().slice(0,19).replace('T',' ');const n=db.prepare('DELETE FROM inquiries WHERE at<?').run(cut).changes;if(n)logAudit('inquiries_purged','retention',`${n} ligne(s) de plus de ${days} jours`);return n}
 const cleanup=()=>db.prepare("DELETE FROM events WHERE at < datetime('now','-90 days')").run();
 cleanup();
-module.exports={db,file,fullRows,getService,listSettings,updateService,validateService,recordRevision,revisions,revision,EDITABLE,categoryIds,snapshotOf,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};
+module.exports={purgeInquiries,db,file,fullRows,getService,listSettings,updateService,updateSettings,validateService,recordRevision,revisions,revision,EDITABLE,categoryIds,snapshotOf,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};

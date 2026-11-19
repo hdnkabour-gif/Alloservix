@@ -13,8 +13,8 @@ function otpAt(secret, step) { const m = Buffer.alloc(8); m.writeBigUInt64BE(Big
 const used = new Map();
 function code(secret, { peek = false } = {}) { // peek: do not reserve the step (for requests the server must reject without consuming)
   const cur = Math.floor(Date.now() / 30000), last = used.get(secret) || 0, step = Math.max(cur, last + 1);
-  if (peek) return otpAt(secret, step > cur + 1 ? cur : step); // may be a replay: callers only use it where the server must refuse anyway
-  if (step > cur + 1) throw new Error('test harness: next TOTP step not yet valid for this secret; use another account');
+  if (peek) return otpAt(secret, step > cur + 5 ? cur : step); // may be a replay: callers only use it where the server must refuse anyway
+  if (step > cur + 5) throw new Error('test harness: next TOTP step not yet valid for this secret; use another account');
   used.set(secret, step); return otpAt(secret, step);
 }
 const freePort = () => new Promise((resolve, reject) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)); }); s.on('error', reject); });
@@ -26,7 +26,7 @@ async function startServer(extra = {}) {
   const env = {
     ...process.env, PORT: String(port), DATA_DIR: dir, NODE_ENV: 'test',
     ADMIN_EMAIL: owner.email, ADMIN_PASSWORD_HASH: scrypt(owner.password), ADMIN_TOTP_SECRET: owner.secret,
-    ALLO_DATA_KEY: crypto.randomBytes(32).toString('hex'), ENABLE_REQUESTS: 'true', ADMIN_REAUTH_SECONDS: '300', ADMIN_RATE_SCALE: '100',
+    ALLO_DATA_KEY: crypto.randomBytes(32).toString('hex'), ENABLE_REQUESTS: 'true', ADMIN_REAUTH_SECONDS: '300', ADMIN_RATE_SCALE: '100', ADMIN_TOTP_WINDOW: '5',
     OPENAI_API_KEY: '', GEMINI_API_KEY: '', ANTHROPIC_API_KEY: '', DEEPSEEK_API_KEY: '', ENABLE_AI: 'false', ...extra
   };
   const child = spawn(process.execPath, ['server.js'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });

@@ -105,7 +105,8 @@
   async function inquiries(root) {
     const r = await App.api('/api/admin/inquiries'), c = App.card('Demandes clients', 'CONTACTS REÇUS');
     c.append(el('p', 'muted', 'La réception de demandes personnelles est désactivée par défaut jusqu’à publication de la politique de confidentialité et activation de ENABLE_INQUIRIES. Ces données sont personnelles.'));
-    c.append(r.inquiries.length ? App.table(['Date', 'Nom', 'Sujet', 'Message', 'Email', 'Téléphone'], r.inquiries.map(q => [App.fmtDate(q.at), q.name, q.topic, q.message, q.email, q.phone])) : App.empty('Aucune demande enregistrée.'));
+    if (r.inquiries.some(q => q.legacy_plaintext)) c.append(el('div', 'banner warn', 'Des contacts anciens sont encore stockés en clair. Créez un instantané puis utilisez « Chiffrer les données existantes » dans État du système.'));
+    c.append(r.inquiries.length ? App.table(['Date', 'Nom', 'Sujet', 'Message', 'Email', 'Téléphone', 'Stockage'], r.inquiries.map(q => [App.fmtDate(q.at), q.name, q.topic, q.message, q.email, q.phone, App.chip(q.legacy_plaintext ? 'En clair' : 'Chiffré', q.legacy_plaintext ? 'warn' : 'ok')])) : App.empty('Aucune demande enregistrée.'));
     root.append(c);
   }
 
