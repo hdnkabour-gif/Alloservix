@@ -16,7 +16,7 @@ store.purgeInquiries(process.env.INQUIRY_RETENTION_DAYS);setInterval(()=>store.p
 const brain=require('./brain-metrics').createBrainMetrics({db:store.db,intentEngine,languageOf:require('./language-understanding').language,redact:require('./monitor').redact,sanitize:aiIntent.sanitize,aiState:{enabled:aiIntent.enabled,configured:aiIntent.configured,order:aiIntent.order,breakers:()=>aiIntent.breakers()}});
 const monitor=require('./monitor').createMonitor({db:store.db,dbFile:store.file,auth});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
-const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json; charset=utf-8'};
 const rate=new Map(),rateScale=Math.max(1,Math.min(100,Number(process.env.ADMIN_RATE_SCALE)||1));
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const secureEqual=(a,b)=>{const aa=Buffer.from(String(a)),bb=Buffer.from(String(b));return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb)};
@@ -77,6 +77,8 @@ fs.stat(dest,(err,stat)=>{if(err||!stat.isFile()||!types[path.extname(dest)])ret
 const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=Date.now();res.on('finish',()=>{try{monitor.recordRequest(req.method,String(req.url||'/').split('?')[0],res.statusCode,Date.now()-t0)}catch{}});try{
   const u=new URL(req.url,'http://localhost'),p=u.pathname,method=req.method;res.setHeader('Cache-Control','no-store');
   if(p==='/health'&&method==='GET')return response(res,200,{ok:true});
+  if(p==='/favicon.ico'&&method==='GET'){res.writeHead(302,{'Location':'/assets/favicon.svg','Cache-Control':'public,max-age=3600'});return res.end();}
+
   if(p==='/admin'&&method==='GET'){res.writeHead(308,{'Location':'/admin/','Cache-Control':'no-store'});return res.end();}
   // QR campaigns and domain homepage open the new guide; preserve /index.html legacy.
   if((p==='/'||p==='/index.html')&&method==='GET'){const src=u.searchParams.get('src');const campaign=['flyer','sticker','business-card'].includes(src)?'?src='+src:'';res.writeHead(302,{'Location':'/constellation-v9/index.html'+campaign,'Cache-Control':'no-store'});return res.end();}
