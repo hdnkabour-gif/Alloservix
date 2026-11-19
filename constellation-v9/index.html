@@ -2,9 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f6f1f9"><meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f6f1f9"><meta name="robots" content="index,follow">
 <meta name="description" content="ALLOSERVIX — L'atelier de solutions technologiques au Maroc. Expliquez votre besoin, explorez des pistes utiles et préparez votre projet.">
-<title>ALLOSERVIX | L'atelier des solutions — Aperçu V9</title>
+<title>ALLOSERVIX | Services et solutions techniques au Maroc</title>
 <link rel="icon" href="/constellation-v9/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -48,8 +48,8 @@
       <button class="nav-btn" data-go="studio" data-i18n="navHow">Notre approche</button>
     </nav>
     <div class="nav-actions">
-      <button class="lang-switch" id="lang-switch" type="button" aria-label="Changer de langue"><span class="lang-fr is-active">FR</span><span class="lang-divider">/</span><span class="lang-ar">عربي</span></button>
-      <a class="team-link" href="/admin" aria-label="Espace administration protégé"><svg><use href="#i-shield"/></svg><span data-i18n="team">Espace équipe</span></a>
+      <div class="lang-switch" role="group" aria-label="Langue / اللغة / Language"><button type="button" data-lang="fr" aria-pressed="true" class="is-active" lang="fr">FR</button><button type="button" data-lang="ar" aria-pressed="false" lang="ar">العربية</button><button type="button" data-lang="darija" aria-pressed="false" lang="ary">الدارجة</button><button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button></div>
+      <a class="team-link" href="/admin/" aria-label="Espace administration protégé"><svg><use href="#i-shield"/></svg><span data-i18n="team">Espace équipe</span></a>
     </div>
   </header>
 
@@ -63,9 +63,9 @@
         <form class="search-hero" id="hero-form" autocomplete="off"><svg class="search-icon"><use href="#i-search"/></svg><label class="sr-only" for="hero-input">Décrivez votre besoin</label><input id="hero-input" type="search" maxlength="500" placeholder="Ex : Je veux réinstaller Windows sur mon PC..."><button type="submit" class="primary-btn"><svg><use href="#i-spark"/></svg><span data-i18n="discover">Trouver une solution</span><svg class="btn-arrow"><use href="#i-arrow"/></svg></button></form><a href="/request-v10/index.html" class="hero-service-link" data-i18n="directRequest">Je souhaite une étude ou une intervention →</a>
         <div class="examples" id="examples"><span data-i18n="examples">Quelques idées :</span><button data-example="pc">Réinstaller un PC</button><button data-example="wifi">Wi-Fi faible</button><button data-example="stock">Gestion du stock</button><button data-example="cctv">Caméras</button></div>
         <div class="paths" aria-label="Choisir votre parcours">
-          <button class="path-tile express" data-go="quick"><span class="path-icon"><svg><use href="#i-spark"/></svg></span><span><strong>Express</strong><small data-i18n="pathFast">Une réponse sans détour</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
-          <button class="path-tile guide" data-go="guide"><span class="path-icon"><svg><use href="#i-layers"/></svg></span><span><strong>Guidé</strong><small data-i18n="pathGuide">Une étape à la fois</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
-          <button class="path-tile explorer" data-go="explore"><span class="path-icon"><svg><use href="#i-search"/></svg></span><span><strong>Explorer</strong><small data-i18n="pathExplore">Découvrez tout notre univers</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
+          <button class="path-tile express" data-go="quick"><span class="path-icon"><svg><use href="#i-spark"/></svg></span><span><strong data-i18n="pathFast">Une réponse sans détour</strong><small data-i18n="quickDesc">Une phrase suffit pour commencer, même sans vocabulaire technique.</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
+          <button class="path-tile guide" data-go="guide"><span class="path-icon"><svg><use href="#i-layers"/></svg></span><span><strong data-i18n="pathGuide">Une étape à la fois</strong><small data-i18n="guideDesc">Choisissez une image, pas besoin de connaître le nom technique.</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
+          <button class="path-tile explorer" data-go="explore"><span class="path-icon"><svg><use href="#i-search"/></svg></span><span><strong data-i18n="pathExplore">Découvrez tout notre univers</strong><small data-i18n="catalogDesc">Parcourez nos solutions, technologies et conseils, selon votre curiosité.</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
         </div>
       </div>
       <div class="home-bottom">
@@ -86,7 +86,7 @@
  <div class="allo-media-header"><strong>Décrivez à votre façon · شرح بطريقتك</strong><small>Texte, voix ou photo. Vérifiez toujours le résultat avant de l'envoyer.</small></div>
  <div class="allo-media-controls">
   <label for="allo-voice-lang">Langue / اللغة</label>
-  <select id="allo-voice-lang" aria-label="Langue de la dictée"><option value="ar-MA">الدارجة / العربية</option><option value="fr-FR">Français</option><option value="en-US">English</option></select>
+  <select id="allo-voice-lang" aria-label="Langue de la dictée"><option value="ar-SA">العربية الفصحى</option><option value="ar-MA">الدارجة المغربية</option><option value="fr-FR">Français</option><option value="en-US">English</option></select>
   <button type="button" id="allo-dictate">🎙️ Dictée / إملاء</button>
   <button type="button" id="allo-cloud-voice" hidden>🎤 Transcription IA (10 s)</button>
   <label class="allo-file-label" for="allo-photo">📷 Photo / صورة</label>
