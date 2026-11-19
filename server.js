@@ -9,6 +9,7 @@ const operations=require('./operations').createOperations(store.db,{getService:s
 const rbac=require('./rbac');
 const {createAuth,totpValid,passwordValid}=require('./auth');
 const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
+const catalogue=require('./catalogue-admin').createCatalogue({db:store.db,store,categories:JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories});
 const monitor=require('./monitor').createMonitor({db:store.db,dbFile:store.file,auth});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
@@ -32,6 +33,7 @@ function systemContext(){const n=q=>store.db.prepare(q).get().n;const configured
   contactEmail:Boolean(store.listSettings().contact_email?.trim()),contactWhatsapp:Boolean(store.listSettings().contact_whatsapp?.trim()),providersConfigured:configured.length,
   flags:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',requests:process.env.ENABLE_REQUESTS==='true'&&operations.isConfigured(),ai:aiIntent.enabled()},
   counts:{available:n("SELECT count(*) n FROM services WHERE published=1 AND status='Disponible'"),hidden:n('SELECT count(*) n FROM services WHERE published=0'),concept_approved:n("SELECT count(*) n FROM knowledge_concepts WHERE review_state='approved'"),technicians:n('SELECT count(*) n FROM technicians')}}}
+const catalogueApi=require('./catalogue-api').createCatalogueApi({catalogue,store,helpers:{response,bodyJson}});
 const adminApi=require('./admin-api').createAdminApi({auth,store,monitor,systemContext,helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
 function searchServices(query){return intentEngine.build(query,studio.enrich(store.fullRows())).matches;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -119,11 +121,12 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     if(rbac.needsReauth(method,p)&&!auth.isFresh(s))return response(res,403,{error:'Revérification d’identité requise (mot de passe + code)',code:'reauth_required'});
     const actor=s.principal,A=(action,resource,details)=>store.logAudit(action,resource,details,actor);
     if(await adminApi.handleAuthed(req,res,p,method,s))return;
+    if(await catalogueApi.handle(req,res,p,method,s))return;
     if(p==='/api/admin/logout'&&method==='POST'){auth.endSession(s.key);A('logout','session');res.setHeader('Set-Cookie',`allo_admin=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${production?'; Secure':''}`);return response(res,200,{ok:true});}
     // Knowledge Studio V11. Only authenticated MFA admin, writes gated by CSRF above.
     if(p==='/api/admin/studio'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories,concepts:studio.concepts(),links:studio.links()});
     if(p==='/api/admin/studio/services'&&method==='POST'){
-      const b=await bodyJson(req),created=studio.createService(b);
+      const b=await bodyJson(req);catalogue.assertNotDuplicate({slug:b&&b.slug,fr:b&&b.fr,ar:b&&b.ar},{force:b&&b.force_duplicate===true&&actor.role==='owner'});const created=studio.createService(b);store.recordRevision(created.slug,{actor,source:'created',note:'Brouillon créé via Knowledge Studio'});
       A('studio_service_draft',created.slug);return response(res,201,{service:created});
     }
     if(p==='/api/admin/studio/concepts'&&method==='POST'){
@@ -230,7 +233,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     }
     if(p==='/api/admin/overview'&&method==='GET')return response(res,200,{analytics:store.analytics(30),total_services:store.fullRows().length,published_services:store.fullRows().filter(x=>x.published).length,inquiries:store.db.prepare('SELECT count(*) n FROM inquiries').get().n,settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});
     if(p==='/api/admin/services'&&method==='GET')return response(res,200,{services:store.fullRows()});
-    if(p.startsWith('/api/admin/services/')&&method==='PUT'){let slug;try{slug=decodeURIComponent(p.split('/').at(-1))}catch{return response(res,400,{error:'Identifiant de service invalide'})}const body=await bodyJson(req);const current=store.getService(slug);if(current&&((Object.hasOwn(body,'published')&&body.published!==current.published)||(Object.hasOwn(body,'status')&&body.status!==current.status))&&!rbac.can(actor.role,'catalogue.publish'))return response(res,403,{error:'Seul un propriétaire peut publier ou changer la disponibilité',code:'forbidden',required:'catalogue.publish'});const result=store.updateService(slug,body);if(!result)return response(res,404,{error:'Service introuvable'});A('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
+    if(p.startsWith('/api/admin/services/')&&method==='PUT'){let slug;try{slug=decodeURIComponent(p.split('/').at(-1))}catch{return response(res,400,{error:'Identifiant de service invalide'})}const body=await bodyJson(req);const current=store.getService(slug);if(current&&((Object.hasOwn(body,'published')&&body.published!==current.published)||(Object.hasOwn(body,'status')&&body.status!==current.status))&&!rbac.can(actor.role,'catalogue.publish'))return response(res,403,{error:'Seul un propriétaire peut publier ou changer la disponibilité',code:'forbidden',required:'catalogue.publish'});if((Object.hasOwn(body,'fr')||Object.hasOwn(body,'ar'))&&current)catalogue.assertNotDuplicate({fr:body.fr??current.fr,ar:body.ar??current.ar,slug},{excludeSlug:slug,force:body.force_duplicate===true});const result=store.updateService(slug,body,{actor,source:'direct-edit',note:typeof body.note==='string'?body.note.slice(0,200):''});if(!result)return response(res,404,{error:'Service introuvable'});A('update_service',slug,JSON.stringify(Object.keys(body)));return response(res,200,{service:result});}
     if(p==='/api/admin/settings'&&method==='PUT'){const b=await bodyJson(req);if(typeof b!=='object'||!b||Array.isArray(b))return response(res,400,{error:'Invalid'});for(const [k,v] of Object.entries(b))store.updateSetting(k,v);A('update_settings','website',Object.keys(b).join(','));return response(res,200,{settings:store.listSettings(),features:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',ai:aiIntent.enabled()}});}
     if(p==='/api/admin/inquiries'&&method==='GET')return response(res,200,{inquiries:store.db.prepare('SELECT * FROM inquiries ORDER BY id DESC LIMIT 80').all()});
     if(p==='/api/admin/audit'&&method==='GET')return response(res,200,{audit:store.listAudit({limit:u.searchParams.get('limit')||80,offset:u.searchParams.get('offset')||0,action:u.searchParams.get('action')||'',actor:u.searchParams.get('actor')||''}),integrity:store.verifyAudit()});
@@ -239,6 +242,6 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
   if(p.startsWith('/api/'))return response(res,404,{error:'Not found'});
   if(method!=='GET'&&method!=='HEAD')return text(res,405,'Method not allowed');
   return serveFile(req,res,p==='/'?'/index.html':p==='/admin'||p==='/admin/'?'/admin/index.html':p);
-}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,e.status||400,{error:e.message,...(e.code?{code:e.code}:{})});console.error('Server request error',e.message);monitor.recordError(req.method,String(req.url||'/'),500,e);return response(res,500,{error:'Internal server error'});}});
+}catch(e){if(/Body too large/.test(e.message))return response(res,413,{error:'Body too large'});if(e.public||/Invalid JSON|non valide|booléen/.test(e.message))return response(res,e.status||400,{error:e.message,...(e.code?{code:e.code}:{}),...(e.candidates?{candidates:e.candidates}:{}),...(e.conflicts?{conflicts:e.conflicts,current:e.current,base:e.base}:{})});console.error('Server request error',e.message);monitor.recordError(req.method,String(req.url||'/'),500,e);return response(res,500,{error:'Internal server error'});}});
 server.listen(port,'0.0.0.0',()=>console.log('ALLOSERVIX V2 listening on',port));
 module.exports={server,totpValid,passwordValid,searchServices};

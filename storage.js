@@ -22,17 +22,46 @@ const fullRows=()=>db.prepare('SELECT * FROM services ORDER BY category,fr').all
 function fromRow(r){return {...r,desc:r.description,technologies:JSON.parse(r.technologies),includes:JSON.parse(r.includes),problems:JSON.parse(r.problems),published:!!r.published};}
 const getService=slug=>{const r=db.prepare('SELECT * FROM services WHERE slug=?').get(slug);return r?fromRow(r):null;};
 const listSettings=()=>Object.fromEntries(db.prepare('SELECT key,value FROM settings').all().map(x=>[x.key,x.value]));
-function updateService(slug, updates){const current=getService(slug);if(!current)return null;
-  const fields=['fr','ar','desc','desc_ar','terms','technologies','includes','problems','status','published'];
-  const next={...current};for(const field of fields)if(Object.hasOwn(updates,field))next[field]=updates[field];
+const EDITABLE=['category','fr','ar','desc','desc_ar','terms','technologies','includes','problems','status','published'];
+const categoryIds=new Set(seeds.categories.map(c=>c.id));
+const snapshotOf=s=>Object.fromEntries(EDITABLE.map(f=>[f,s[f]]));
+function validateService(current,updates){
+  const next={...current};for(const field of EDITABLE)if(Object.hasOwn(updates,field))next[field]=updates[field];
   const validStatuses=['Sur étude','Disponible','En préparation','Indisponible'];
   if(!validStatuses.includes(next.status))throw new Error('Statut non valide');
+  if(!categoryIds.has(next.category))throw new Error('Catégorie inconnue');
   for(const f of ['fr','ar','desc','desc_ar','terms'])if(typeof next[f]!=='string'||next[f].length>4000||!next[f].trim())throw new Error('Champ non valide: '+f);
   for(const f of ['technologies','includes','problems'])if(!Array.isArray(next[f])||next[f].length>40||next[f].some(x=>typeof x!=='string'||x.length>250))throw new Error('Liste non valide: '+f);
   if(typeof next.published!=='boolean')throw new Error('published doit être booléen');
-  db.prepare(`UPDATE services SET fr=?,ar=?,description=?,desc_ar=?,terms=?,technologies=?,includes=?,problems=?,status=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?`).run(next.fr,next.ar,next.desc,next.desc_ar,next.terms,JSON.stringify(next.technologies),JSON.stringify(next.includes),JSON.stringify(next.problems),next.status,Number(next.published),slug);
+  return next;
+}
+// Revision history: every change to a service keeps a full snapshot (who, when, why, which fields).
+db.exec(`CREATE TABLE IF NOT EXISTS service_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, rev INTEGER NOT NULL, at TEXT NOT NULL, actor TEXT NOT NULL, actor_role TEXT NOT NULL DEFAULT '', source TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', changed TEXT NOT NULL DEFAULT '[]', snapshot TEXT NOT NULL, UNIQUE(slug,rev)); CREATE INDEX IF NOT EXISTS idx_service_rev_slug ON service_revisions(slug,rev);`);
+const sameValue=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function recordRevision(slug,meta={}){
+  const cur=getService(slug);if(!cur)return null;
+  const last=db.prepare('SELECT rev,snapshot FROM service_revisions WHERE slug=? ORDER BY rev DESC LIMIT 1').get(slug);
+  const snap=snapshotOf(cur),prev=last?JSON.parse(last.snapshot):null;
+  const changed=prev?EDITABLE.filter(f=>!sameValue(prev[f],snap[f])):[];
+  if(last&&!changed.length)return null;
+  const actor=meta.actor||{};
+  db.prepare('INSERT INTO service_revisions(slug,rev,at,actor,actor_role,source,note,changed,snapshot) VALUES(?,?,?,?,?,?,?,?,?)').run(slug,last?last.rev+1:1,new Date().toISOString(),String(actor.email||actor.label||'system').slice(0,160),String(actor.role||'').slice(0,20),String(meta.source||'edit').slice(0,60),String(meta.note||'').slice(0,300),JSON.stringify(changed),JSON.stringify(snap));
+  return (last?last.rev+1:1);
+}
+function updateService(slug, updates, meta={}){const current=getService(slug);if(!current)return null;
+  const next=validateService(current,updates);
+  db.exec('SAVEPOINT svc_update');
+  try{
+    // keep a baseline of the pre-change content the first time a service is touched
+    if(!db.prepare('SELECT 1 x FROM service_revisions WHERE slug=?').get(slug))recordRevision(slug,{source:'baseline',note:'État avant la première modification suivie'});
+    db.prepare(`UPDATE services SET category=?,fr=?,ar=?,description=?,desc_ar=?,terms=?,technologies=?,includes=?,problems=?,status=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?`).run(next.category,next.fr,next.ar,next.desc,next.desc_ar,next.terms,JSON.stringify(next.technologies),JSON.stringify(next.includes),JSON.stringify(next.problems),next.status,Number(next.published),slug);
+    recordRevision(slug,meta);
+    db.exec('RELEASE svc_update');
+  }catch(e){db.exec('ROLLBACK TO svc_update');db.exec('RELEASE svc_update');throw e}
   return getService(slug);
 }
+const revisions=slug=>db.prepare('SELECT id,rev,at,actor,actor_role,source,note,changed FROM service_revisions WHERE slug=? ORDER BY rev DESC LIMIT 200').all(slug).map(r=>({...r,changed:JSON.parse(r.changed)}));
+const revision=(slug,rev)=>{const r=db.prepare('SELECT * FROM service_revisions WHERE slug=? AND rev=?').get(slug,rev);return r?{...r,changed:JSON.parse(r.changed),snapshot:JSON.parse(r.snapshot)}:null};
 const updateSetting=(key,value)=>{if(!['site_title','site_subtitle','contact_whatsapp','contact_email','contact_location'].includes(key))throw new Error('Clé non autorisée');if(typeof value!=='string'||value.length>180)throw new Error('Valeur non valide');db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,value)};
 function ensureColumn(table,col,def){if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name===col))db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`)}
 for(const [col,def] of [['actor_id',"TEXT NOT NULL DEFAULT ''"],['actor_role',"TEXT NOT NULL DEFAULT ''"],['prev_hash',"TEXT NOT NULL DEFAULT ''"],['row_hash',"TEXT NOT NULL DEFAULT ''"]])ensureColumn('audit',col,def);
@@ -62,4 +91,4 @@ function analytics(days=30){const since=`-${days} days`;
 }
 const cleanup=()=>db.prepare("DELETE FROM events WHERE at < datetime('now','-90 days')").run();
 cleanup();
-module.exports={db,file,fullRows,getService,listSettings,updateService,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};
+module.exports={db,file,fullRows,getService,listSettings,updateService,validateService,recordRevision,revisions,revision,EDITABLE,categoryIds,snapshotOf,updateSetting,logAudit,verifyAudit,listAudit,recordEvent,analytics,cleanup};

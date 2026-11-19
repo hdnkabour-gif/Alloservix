@@ -98,47 +98,6 @@
     root.append(c); void d;
   }
 
-  // ---- Prestations ---------------------------------------------------------------------------
-  async function services(root) {
-    const data = await App.api('/api/admin/services'), canPublish = App.can('catalogue.publish'), canEdit = App.can('catalogue.edit');
-    const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    const c = App.card('Catalogue des prestations', 'CONTENU');
-    c.append(el('p', 'muted', 'Les fiches sont visibles après publication. Une prestation n’est jamais automatiquement marquée « Disponible ». ' + (canPublish ? '' : 'Seul un propriétaire peut publier ou changer la disponibilité.')));
-    const search = App.input({ type: 'search', placeholder: 'Nom ou catégorie…' }); c.append(App.field('Rechercher', search));
-    const list = el('div', 'service-list'); c.append(list); root.append(c);
-    const editor = el('div'); root.append(editor);
-    const paint = () => {
-      list.replaceChildren(); const t = norm(search.value);
-      for (const s of data.services.filter(x => norm(x.fr + ' ' + x.ar + ' ' + x.category).includes(t))) {
-        const line = el('div', 'line'), label = el('span'); label.append(el('strong', '', s.fr), document.createTextNode(' — ' + s.category + ' '),
-          App.chip(s.status, s.status === 'Disponible' ? 'ok' : s.status === 'Indisponible' ? 'bad' : 'neutral'));
-        if (!s.published) label.append(document.createTextNode(' '), App.chip('Masqué', 'warn'));
-        line.append(label); if (canEdit) line.append(App.btn('Modifier', () => open(s), 'small')); list.append(line);
-      }
-    };
-    search.addEventListener('input', paint); paint();
-    function open(s) {
-      editor.replaceChildren();
-      const card = App.card('Modifier : ' + s.fr, 'ÉDITION'), f = el('form', 'form-grid');
-      const lines = v => v.join('\n'), T = (v, rows = 3, rtl) => { const t = el('textarea'); t.rows = rows; t.value = v; if (rtl) t.dir = 'rtl'; return t; };
-      const fr = App.input({ value: s.fr, required: '', maxlength: '200' }), ar = App.input({ value: s.ar, required: '', maxlength: '200', dir: 'rtl' });
-      const desc = T(s.desc), descAr = T(s.desc_ar, 3, true), terms = T(s.terms), tech = T(lines(s.technologies), 4), inc = T(lines(s.includes), 4), prob = T(lines(s.problems), 4);
-      const status = App.select(['Sur étude', 'Disponible', 'En préparation', 'Indisponible'].map(x => [x, x]), s.status); status.disabled = !canPublish;
-      const pub = App.input({ type: 'checkbox' }); pub.checked = s.published; pub.disabled = !canPublish;
-      const pubLabel = el('label', 'check'); pubLabel.append(pub, document.createTextNode(' Publier la fiche' + (canPublish ? '' : ' (réservé au propriétaire)')));
-      f.append(App.field('Nom FR', fr), App.field('Nom AR', ar), App.field('Description FR', desc), App.field('Description AR', descAr), App.field('Mots-clés', terms),
-        App.field('Technologies (une par ligne)', tech), App.field('Ce qui est inclus', inc), App.field('Problèmes concernés', prob), App.field('Disponibilité', status), pubLabel);
-      const ok = el('button', 'btn primary', 'Enregistrer'); ok.type = 'submit'; const act = el('div', 'full toolbar'); act.append(ok, App.btn('Annuler', () => editor.replaceChildren())); f.append(act);
-      f.addEventListener('submit', App.guard(async ev => {
-        ev.preventDefault(); const split = t => t.value.split('\n').map(x => x.trim()).filter(Boolean);
-        const body = { fr: fr.value, ar: ar.value, desc: desc.value, desc_ar: descAr.value, terms: terms.value, technologies: split(tech), includes: split(inc), problems: split(prob) };
-        if (canPublish) { body.status = status.value; body.published = pub.checked; }
-        await App.api('/api/admin/services/' + encodeURIComponent(s.slug), { method: 'PUT', data: body }); App.toast('Service enregistré'); App.navigate('services');
-      }));
-      card.append(f); editor.append(card); card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
-
   // ---- Paramètres ----------------------------------------------------------------------------
   async function settings(root) {
     const o = await App.api('/api/admin/overview'), s = o.settings;
@@ -192,7 +151,6 @@
   V('control', 'Centre de contrôle', '◈', 'pilotage', 'dashboard.view', control);
   V('stats', 'Statistiques', '📈', 'pilotage', 'analytics.read', stats);
   V('security', 'Sécurité & lancement', '🛡', 'pilotage', 'dashboard.view', security);
-  V('services', 'Prestations', '🧩', 'content', 'catalogue.read', services);
   V('intelligence', 'Intelligence IA', '🧠', 'content', 'ai.monitor', intelligence);
   App.register({ id: 'brain', label: 'Knowledge Studio', icon: '📚', group: 'content', perm: 'knowledge.read', external: '/brain-studio/index.html' });
   V('requests', 'Demandes', '📥', 'ops', 'requests.view', requests);
