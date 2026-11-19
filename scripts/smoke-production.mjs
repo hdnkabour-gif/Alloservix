@@ -26,6 +26,12 @@ for(const [question,expected] of examples){
  const answer=await r.json();if(answer.intent?.topic!==expected)throw Error('Wrong topic for '+expected+': '+answer.intent?.topic);
  if(answer.engine!=='catalogue-grounded')throw Error('External model unexpectedly authored the answer');
 }
+const adminPage=await request('/admin/');if(adminPage.status!==200)throw Error('Admin login page not served');
+const adminHtml=await adminPage.text();
+for(const marker of ['id="control"','id="cmd-services"','id="cmd-knowledge"','id="intelligence"','id="security"'])
+ if(!adminHtml.includes(marker))throw Error('Unified command center UI missing marker '+marker);
+const adminJs=await request('/admin/admin.js');if(adminJs.status!==200||!(await adminJs.text()).includes('/api/admin/control-center'))throw Error('Admin center client script missing');
+const adminCss=await request('/admin/admin.css');if(adminCss.status!==200||!(await adminCss.text()).includes('.control-hero'))throw Error('Admin command center CSS missing');
 const admin=await request('/api/admin/ai/status');if(admin.status!==401)throw Error('Private AI status exposed: '+admin.status);
 const privateCenter=await request('/api/admin/control-center');if(privateCenter.status!==401)throw Error('Control center is exposed without a session');
 const adminSession=await request('/api/admin/session');if(adminSession.status!==200)throw Error('Admin session check unavailable');const sess=await adminSession.json();if(sess.configured!==true||sess.authenticated!==false)throw Error('Admin credentials not configured or session not protected');
