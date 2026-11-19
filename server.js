@@ -10,6 +10,7 @@ const rbac=require('./rbac');
 const {createAuth,totpValid,passwordValid}=require('./auth');
 const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
 const catalogue=require('./catalogue-admin').createCatalogue({db:store.db,store,categories:JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories});
+const brain=require('./brain-metrics').createBrainMetrics({db:store.db,intentEngine,languageOf:require('./language-understanding').language,redact:require('./monitor').redact,sanitize:aiIntent.sanitize,aiState:{enabled:aiIntent.enabled,configured:aiIntent.configured,order:aiIntent.order,breakers:()=>aiIntent.breakers()}});
 const monitor=require('./monitor').createMonitor({db:store.db,dbFile:store.file,auth});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8'};
@@ -34,6 +35,7 @@ function systemContext(){const n=q=>store.db.prepare(q).get().n;const configured
   flags:{analytics:process.env.ENABLE_ANALYTICS==='true',inquiries:process.env.ENABLE_INQUIRIES==='true',requests:process.env.ENABLE_REQUESTS==='true'&&operations.isConfigured(),ai:aiIntent.enabled()},
   counts:{available:n("SELECT count(*) n FROM services WHERE published=1 AND status='Disponible'"),hidden:n('SELECT count(*) n FROM services WHERE published=0'),concept_approved:n("SELECT count(*) n FROM knowledge_concepts WHERE review_state='approved'"),technicians:n('SELECT count(*) n FROM technicians')}}}
 const catalogueApi=require('./catalogue-api').createCatalogueApi({catalogue,store,helpers:{response,bodyJson}});
+const brainApi=require('./brain-api').createBrainApi({brain,store,studio,helpers:{response,bodyJson}});
 const adminApi=require('./admin-api').createAdminApi({auth,store,monitor,systemContext,helpers:{response,bodyJson,checkRate,clientId,originOk,rateScale}});
 function searchServices(query){return intentEngine.build(query,studio.enrich(store.fullRows())).matches;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -57,24 +59,27 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
   if(p.startsWith('/api/public/service/')&&method==='GET'){let slug;try{slug=decodeURIComponent(p.split('/').at(-1))}catch{return response(res,400,{error:'Identifiant de service invalide'})}const s=store.getService(slug);return s&&s.published&&s.status!=='Indisponible'?response(res,200,s):response(res,404,{error:'Not found'});}
   if((p==='/api/public/assistant'||p==='/api/public/diagnose')&&method==='POST'){
     if(!checkRate('assist:'+clientId(req),40,3600000))return response(res,429,{error:'Trop de demandes'});
-    const body=await bodyJson(req),query=safeStr(body.question,500);if(query.length<2)return response(res,400,{error:'Question trop courte'});
+    const tStart=Date.now(),body=await bodyJson(req),query=safeStr(body.question,500);if(query.length<2)return response(res,400,{error:'Question trop courte'});
     const raw=body.answers&&typeof body.answers==='object'&&!Array.isArray(body.answers)?body.answers:{};
     const answers=Object.fromEntries(Object.entries(raw).filter(([key,val])=>/^(context|detail|goal)$/.test(key)&&typeof val==='string'&&/^[\w-]{1,30}$/.test(val)));
     const catalog=studio.enrich(store.fullRows());
     const analysis=intentEngine.build(query,catalog,answers);
     // Only interpretation goes to vendors, after separate visitor consent.
     // The customer-facing answer is always written by ALLOSERVIX.
-    let result=analysis;
+    let result=analysis,ai={outcome:'not_requested',provider:''};
+    if(body.allow_external_ai===true&&!aiIntent.enabled())ai.outcome='disabled';
     if(aiIntent.enabled()&&body.allow_external_ai===true){
       const day=new Date().toISOString().slice(0,10),requested=Number(process.env.AI_DAILY_LIMIT||40);
       const limit=Number.isFinite(requested)?Math.max(0,Math.min(500,Math.floor(requested))):40;
       const count=store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n;
       if(count<limit){
         store.db.prepare('INSERT INTO ai_usage(day) VALUES(?)').run(day);
-        const insight=await aiIntent.classify(query,catalog);
+        const insight=await aiIntent.classify(query,catalog,{onEvent:brain.providerEvent('text')});
         result=aiIntent.applySuggestion(analysis,insight,catalog,answers);
-      }
+        ai={outcome:insight?'ok':'failed',provider:insight?.provider||''};
+      }else ai.outcome='quota_exhausted';
     }
+    brain.recordCall({kind:'text',query,analysis,answers,ai,ms:Date.now()-tStart,capture:body.allow_improvement===true});
     return response(res,200,{...result,engine:'catalogue-grounded'});
   }
   // Ephemeral media intake; the visitor must explicitly approve provider processing.
@@ -89,7 +94,9 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     const day=new Date().toISOString().slice(0,10),n=Number(process.env.AI_DAILY_LIMIT||40),max=Number.isFinite(n)?Math.max(0,Math.min(500,Math.floor(n))):40;
     if(store.db.prepare('SELECT count(*) n FROM ai_usage WHERE day=?').get(day).n>=max)return response(res,429,{error:'Daily AI budget reached'});
     store.db.prepare('INSERT INTO ai_usage(day) VALUES(?)').run(day);
-    const result=isImage?await media.analyzeImage(b.data_url,{lang:b.lang==='ar'?'ar':'fr'}):await media.transcribeAudio(b.data_url);
+    const tMedia=Date.now(),onEvent=brain.providerEvent(isImage?'image':'audio');
+    const result=isImage?await media.analyzeImage(b.data_url,{lang:b.lang==='ar'?'ar':'fr',onEvent}):await media.transcribeAudio(b.data_url,{onEvent});
+    brain.recordMedia({kind:isImage?'image':'audio',ok:Boolean(result),provider:result?.provider||'',ms:Date.now()-tMedia,confidence:result?.observed?.confidence});
     return result?response(res,200,result):response(res,503,{error:'Media recognition unavailable; describe your need in text'});
   }
   if(p==='/api/public/event'&&method==='POST'){if(process.env.ENABLE_ANALYTICS!=='true')return response(res,503,{error:'Statistiques désactivées'});if(!checkRate('event:'+clientId(req),400,3600000))return response(res,429,{error:'Rate limit'});const obj=safeEvent(await bodyJson(req));if(!obj)return response(res,400,{error:'Invalid event or no consent'});store.recordEvent(obj);res.writeHead(204);return res.end();}
@@ -122,6 +129,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     const actor=s.principal,A=(action,resource,details)=>store.logAudit(action,resource,details,actor);
     if(await adminApi.handleAuthed(req,res,p,method,s))return;
     if(await catalogueApi.handle(req,res,p,method,s))return;
+    if(await brainApi.handle(req,res,p,method,s))return;
     if(p==='/api/admin/logout'&&method==='POST'){auth.endSession(s.key);A('logout','session');res.setHeader('Set-Cookie',`allo_admin=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${production?'; Secure':''}`);return response(res,200,{ok:true});}
     // Knowledge Studio V11. Only authenticated MFA admin, writes gated by CSRF above.
     if(p==='/api/admin/studio'&&method==='GET')return response(res,200,{categories:JSON.parse(fs.readFileSync(path.join(root,'assets/services.json'),'utf8')).categories,concepts:studio.concepts(),links:studio.links()});

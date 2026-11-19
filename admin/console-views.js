@@ -86,18 +86,6 @@
     root.append(g);
   }
 
-  // ---- Intelligence IA (configuration only; detailed brain monitoring lands in its own view) ---
-  async function intelligence(root) {
-    const [ai, d] = await Promise.all([App.api('/api/admin/ai/status'), App.api('/api/admin/control-center').catch(() => null)]);
-    const kp = el('div', 'kpis'); kp.append(App.kpi('Appels IA aujourd’hui', ai.usage.used, 'Limite quotidienne : ' + ai.usage.daily_limit),
-      App.kpi('Classification de texte', ai.features.text_intent ? 'Actif' : 'Inactif'), App.kpi('Compréhension d’images', ai.features.image_intent ? 'Actif' : 'Inactif'), App.kpi('Transcription audio', ai.features.audio_transcription ? 'Actif' : 'Inactif'));
-    root.append(kp);
-    const c = App.card('Fournisseurs d’IA', 'ALLOSERVIX INTELLIGENCE');
-    c.append(el('p', 'muted', 'Chaque modèle est seulement un outil d’interprétation. Aucun modèle ne peut approuver une prestation, envoyer un devis ou affecter un technicien. Clés, budgets et contrats se configurent dans Railway ; aucune clé n’est affichée ici.'));
-    c.append(App.rows(ai.providers.map(p => [p.name, p.key_configured ? 'Clé présente' : 'Clé absente', p.key_configured ? 'ok' : 'neutral'])));
-    root.append(c); void d;
-  }
-
   // ---- Paramètres ----------------------------------------------------------------------------
   async function settings(root) {
     const o = await App.api('/api/admin/overview'), s = o.settings;
@@ -151,7 +139,6 @@
   V('control', 'Centre de contrôle', '◈', 'pilotage', 'dashboard.view', control);
   V('stats', 'Statistiques', '📈', 'pilotage', 'analytics.read', stats);
   V('security', 'Sécurité & lancement', '🛡', 'pilotage', 'dashboard.view', security);
-  V('intelligence', 'Intelligence IA', '🧠', 'content', 'ai.monitor', intelligence);
   App.register({ id: 'brain', label: 'Knowledge Studio', icon: '📚', group: 'content', perm: 'knowledge.read', external: '/brain-studio/index.html' });
   V('requests', 'Demandes', '📥', 'ops', 'requests.view', requests);
   App.register({ id: 'ops', label: 'Demandes & techniciens', icon: '🛠', group: 'ops', perm: 'requests.view', external: '/ops-v10/index.html' });

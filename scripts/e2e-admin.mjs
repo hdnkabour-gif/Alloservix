@@ -43,12 +43,24 @@ try {
   check('owner sees full navigation', ['Centre de contrôle', 'Équipe & accès', 'Journal d’audit', 'Paramètres du site', 'Mon compte', 'Catalogue'].every(l => ownerNav.includes(l)), ownerNav.join(' | '));
   await page.waitForSelector('.control-hero'); await page.screenshot({ path: path.join(shots, '02-control-center.png'), fullPage: true });
   check('control center shows real KPI values', (await page.textContent('.kpis')).includes('100'));
-  for (const label of ['Statistiques', 'Sécurité & lancement', 'Catalogue', 'Intelligence IA', 'Demandes', 'Contacts reçus', 'Paramètres du site', 'Journal d’audit', 'Équipe & accès', 'État du système', 'Mon compte']) {
+  for (const label of ['Statistiques', 'Sécurité & lancement', 'Catalogue', 'Cerveau & IA', 'Demandes', 'Contacts reçus', 'Paramètres du site', 'Journal d’audit', 'Équipe & accès', 'État du système', 'Mon compte']) {
     await page.click(`#nav .nav-item:has(.nav-label:text-is("${label}"))`); await page.waitForTimeout(350);
     const err = await page.$('.error-box'); check(`view renders: ${label}`, !err, err ? await err.textContent() : '');
     await page.screenshot({ path: path.join(shots, `03-${label.replace(/[^a-z]/gi, '').toLowerCase()}.png`), fullPage: true });
   }
   check('account page offers Railway→in-app migration for the initial owner', (await page.textContent('#view')).includes('Passer à des identifiants'));
+
+  // brain monitoring: real assistant traffic -> metrics; evaluation run from the UI
+  for (const q of ['الويفي ضعيف فالدار', 'mon wifi ne marche pas', 'xxxxx nonsensical not-a-device']) await fetch(srv.url + '/api/public/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+  await page.click('#nav .nav-item:has(.nav-label:text-is("Cerveau & IA"))'); await page.waitForSelector('.tabbar'); await page.waitForSelector('.kpis');
+  check('brain overview counts the live assistant calls and states the privacy rule', /Demandes analysées/.test(await page.textContent('#view')) && /texte des visiteurs n’est jamais conservé/.test(await page.textContent('#view')));
+  await page.screenshot({ path: path.join(shots, '03c-brain-overview.png'), fullPage: true });
+  await page.click('.tabbar button[data-t=eval]'); await page.waitForSelector('button:has-text("Lancer l’évaluation maintenant")');
+  await page.click('button:has-text("Lancer l’évaluation maintenant")'); await page.waitForSelector('text=Cas en échec', { timeout: 15000 });
+  check('evaluation run shows accuracy and the weak spots', /Bonne prestation en 1er/.test(await page.textContent('#view')) && /my printer is broken/.test(await page.textContent('#view')));
+  await page.screenshot({ path: path.join(shots, '03d-brain-eval.png'), fullPage: true });
+  await page.click('.tabbar button[data-t=providers]'); await page.waitForSelector('text=Disjoncteurs'); check('providers tab explains cost is not invented', /Aucun tarif n’est codé/.test(await page.textContent('#view')));
+  await page.click('.tabbar button[data-t=unmatched]'); await page.waitForSelector('text=capture volontaire'); check('unmatched capture shows as disabled', /Désactivée/.test(await page.textContent('#view')));
 
   // system status: checklist, domain check, snapshot
   await page.click('#nav .nav-item:has(.nav-label:text-is("État du système"))'); await page.waitForSelector('.kpis');
