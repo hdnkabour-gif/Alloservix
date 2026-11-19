@@ -155,7 +155,7 @@ const bc=require('../backup-crypto');
 test('P1 restore drill boots the real application on a isolated copy of a snapshot and decrypts sample data with the current key',async()=>{
   const mgr=await staff('manager','Drillmgr');assert.equal((await mgr.client.post('/api/admin/system/backups/alloservix-20260101-000000.sqlite/verify-restore',{})).status,403,'owner only');
   assert.equal((await owner.post('/api/admin/system/backups/..%2F..%2Fetc%2Fpasswd/verify-restore',{})).status,403,'path traversal never reaches the handler (default deny)');
-  const snap=await owner.post('/api/admin/system/backups',{});assert.equal(snap.status,201,JSON.stringify(snap.body));const name=snap.body.backup.file;
+  await new Promise(r=>setTimeout(r,1100));const snap=await owner.post('/api/admin/system/backups',{});assert.equal(snap.status,201,JSON.stringify(snap.body));const name=snap.body.backup.file;
   const drill=await owner.post(`/api/admin/system/backups/${name}/verify-restore`,{});assert.equal(drill.status,200,JSON.stringify(drill.body));
   const names=drill.body.steps.map(s=>s.name);for(const n of ['integrity_check SQLite','Clés étrangères cohérentes','Données chiffrées lisibles avec la clé actuelle (ALLO_DATA_KEY)','L’application démarre sur la copie restaurée','Catalogue servi depuis la copie','Écran de connexion opérationnel (comptes présents)'])assert.ok(names.includes(n),'missing step '+n);
   assert.ok(drill.body.steps.every(s=>s.ok),JSON.stringify(drill.body.steps.filter(s=>!s.ok)));
