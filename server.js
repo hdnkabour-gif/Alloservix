@@ -16,7 +16,7 @@ store.purgeInquiries(process.env.INQUIRY_RETENTION_DAYS);setInterval(()=>store.p
 const brain=require('./brain-metrics').createBrainMetrics({db:store.db,intentEngine,languageOf:require('./language-understanding').language,redact:require('./monitor').redact,sanitize:aiIntent.sanitize,aiState:{enabled:aiIntent.enabled,configured:aiIntent.configured,order:aiIntent.order,breakers:()=>aiIntent.breakers()}});
 const monitor=require('./monitor').createMonitor({db:store.db,dbFile:store.file,auth});
 const root=__dirname,port=Number(process.env.PORT||3000),production=process.env.NODE_ENV==='production';
-const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json; charset=utf-8'};
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.txt':'text/plain; charset=utf-8','.xml':'application/xml; charset=utf-8','.webmanifest':'application/manifest+json; charset=utf-8'};
 const rate=new Map(),rateScale=Math.max(1,Math.min(100,Number(process.env.ADMIN_RATE_SCALE)||1));
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const secureEqual=(a,b)=>{const aa=Buffer.from(String(a)),bb=Buffer.from(String(b));return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb)};

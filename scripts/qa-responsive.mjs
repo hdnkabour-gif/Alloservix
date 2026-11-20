@@ -43,4 +43,21 @@ try{
    console.log('PASS '+width+'px',metrics);
    await page.close();
  }
+
+ const extra=await browser.newPage({viewport:{width:375,height:812}});
+ const legalResp=await extra.goto(base+'/mentions.html',{waitUntil:'networkidle'});
+ assert.equal(legalResp.status(),200,'legal notice must be reachable');
+ assert.equal(await extra.locator('#fr').isVisible(),true,'French legal content must be visible');
+ assert.equal(await extra.locator('#ar').isVisible(),false,'Inactive legal locale must be hidden');
+ const background=await extra.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor);
+ assert.notEqual(background,'rgba(0, 0, 0, 0)','legal CSS must be applied under CSP');
+ await extra.locator('a[href="#ar"]').click();
+ assert.equal(await extra.locator('#ar').isVisible(),true,'Arabic legal content must be visible');
+ assert.equal(await extra.locator('#fr').isVisible(),false,'French must hide after Arabic selection');
+ assert.equal(await extra.locator('a[href="mailto:alloservix@gmail.com"]').count()>0,true);
+ await extra.screenshot({path:'qa-screenshots/legal-375.png',fullPage:true});
+ const site=await extra.request.get(base+'/sitemap.xml');
+ assert.equal(site.status(),200);
+ assert.match(site.headers()['content-type']||'',/application\/xml/);
+ await extra.close();
 }catch(e){console.error(e);process.exitCode=1}finally{await browser.close()}
