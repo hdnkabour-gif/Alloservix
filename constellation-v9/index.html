@@ -2,13 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f6f1f9"><meta name="robots" content="index,follow">
+<meta name="theme-color" content="#0B1F44"><meta name="robots" content="index,follow">
 <meta name="description" content="ALLOSERVIX — L'atelier de solutions technologiques au Maroc. Expliquez votre besoin, explorez des pistes utiles et préparez votre projet.">
 <title>ALLOSERVIX | Services et solutions techniques au Maroc</title>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="manifest" href="/assets/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/constellation-v9/style.css"><script src="/assets/config.js" defer></script><script src="/constellation-v9/app.js" defer></script><script src="/constellation-v9/media-ui.js" defer></script>
+<link rel="stylesheet" href="/constellation-v9/style.css"><link rel="stylesheet" href="/constellation-v9/brand-refresh.css"><script src="/assets/config.js" defer></script><script src="/constellation-v9/app.js" defer></script><script src="/constellation-v9/media-ui.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#workspace">Aller au contenu</a>
@@ -39,8 +39,7 @@
 <div id="app" class="app-shell">
   <header class="header-shell glass">
     <a class="identity" href="#accueil" data-go="home" aria-label="ALLOSERVIX accueil">
-      <img class="mark" src="/assets/logo-mark.svg" alt="" width="44" height="44" decoding="async">
-      <span class="identity-text"><strong>ALLOSERVIX</strong><small data-i18n="brandTag">Solutions technologiques · Maroc</small></span>
+      <img class="brand-wordmark" src="/assets/logo-wordmark.svg" alt="ALLOSERVIX — Solutions technologiques Maroc" width="270" height="56" decoding="async">
     </a>
     <nav class="desktop-nav" aria-label="Navigation principale">
       <button class="nav-btn is-active" data-go="home" data-i18n="navHome">Accueil</button>
@@ -57,11 +56,26 @@
     <section class="screen scene-home is-visible" data-screen="home" id="accueil" aria-labelledby="main-title">
       <div class="hero-art" aria-hidden="true"></div><div class="hero-soften" aria-hidden="true"></div>
       <div class="hero-content">
-        <div class="eyebrow"><span class="pulse"></span><span data-i18n="eyebrow">Le nouveau parcours pour trouver votre solution</span></div>
+        <div class="eyebrow"><span class="pulse"></span><span data-i18n="eyebrow">Décrivez. Comprenez. Décidez.</span></div>
         <h1 id="main-title" data-i18n-html="heroTitle">Des <em>solutions</em> à la hauteur de vos idées.</h1>
         <p class="hero-sub" data-i18n="heroSubtitle">Petite panne ou grand projet : racontez-nous votre besoin, on vous aide à y voir clair.</p>
         <form class="search-hero" id="hero-form" autocomplete="off"><svg class="search-icon"><use href="#i-search"/></svg><label class="sr-only" for="hero-input">Décrivez votre besoin</label><input id="hero-input" type="search" maxlength="500" placeholder="Ex : Je veux réinstaller Windows sur mon PC..."><button type="submit" class="primary-btn"><svg><use href="#i-spark"/></svg><span data-i18n="discover">Trouver une solution</span><svg class="btn-arrow"><use href="#i-arrow"/></svg></button></form><a href="/request-v10/index.html" class="hero-service-link" data-i18n="directRequest">Je souhaite une étude ou une intervention →</a>
         <div class="examples" id="examples"><span data-i18n="examples">Quelques idées :</span><button data-example="pc">Réinstaller un PC</button><button data-example="wifi">Wi-Fi faible</button><button data-example="stock">Gestion du stock</button><button data-example="cctv">Caméras</button></div>
+        <section class="popular-services" aria-labelledby="popular-title">
+  <h2 id="popular-title" data-i18n="popularTitle">Nos services courants</h2>
+  <div class="popular-grid">
+    <button type="button" data-service-search="Wi-Fi" aria-label="Wi-Fi &amp; Réseau"><svg><use href="#i-wifi"/></svg><span data-i18n="serviceWifi">Wi-Fi &amp; Réseau</span></button>
+    <button type="button" data-service-search="caméra" aria-label="Caméras"><svg><use href="#i-camera"/></svg><span data-i18n="serviceCameras">Caméras</span></button>
+    <button type="button" data-service-search="ordinateur" aria-label="Dépannage PC"><svg><use href="#i-monitor"/></svg><span data-i18n="servicePc">Dépannage PC</span></button>
+    <button type="button" data-service-search="imprimante" aria-label="Imprimantes"><span class="popular-symbol" aria-hidden="true">▤</span><span data-i18n="servicePrinters">Imprimantes</span></button>
+    <button type="button" data-service-search="site web" aria-label="Développement web"><svg><use href="#i-code"/></svg><span data-i18n="serviceWeb">Développement web</span></button>
+    <button type="button" data-service-search="portail" aria-label="Portails et moteurs"><span class="popular-symbol" aria-hidden="true">⚙</span><span data-i18n="serviceGates">Portails &amp; moteurs</span></button>
+    <button type="button" data-service-search="interphone" aria-label="Interphone"><span class="popular-symbol" aria-hidden="true">▣</span><span data-i18n="serviceIntercom">Interphone &amp; vidéophonie</span></button>
+    <button type="button" data-service-search="TV" aria-label="TV et parabole"><span class="popular-symbol" aria-hidden="true">▣</span><span data-i18n="serviceTv">TV &amp; parabole</span></button>
+    <button type="button" data-service-search="routeur" aria-label="Routeur"><svg><use href="#i-wifi"/></svg><span data-i18n="serviceRouter">Installation de routeurs</span></button>
+  </div>
+  <p class="availability-note" data-i18n="availabilityNote">Chaque demande est examinée par une personne. Prix et disponibilité sont confirmés avant tout engagement.</p>
+</section>
         <div class="paths" aria-label="Choisir votre parcours">
           <button class="path-tile express" data-go="quick"><span class="path-icon"><svg><use href="#i-spark"/></svg></span><span><strong data-i18n="pathFast">Une réponse sans détour</strong><small data-i18n="quickDesc">Une phrase suffit pour commencer, même sans vocabulaire technique.</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
           <button class="path-tile guide" data-go="guide"><span class="path-icon"><svg><use href="#i-layers"/></svg></span><span><strong data-i18n="pathGuide">Une étape à la fois</strong><small data-i18n="guideDesc">Choisissez une image, pas besoin de connaître le nom technique.</small></span><svg class="path-arrow"><use href="#i-arrow"/></svg></button>
@@ -83,7 +97,7 @@
     <section class="screen work-scene" data-screen="quick" aria-labelledby="quick-title" hidden>
       <div class="work-header"><button class="back-btn" data-go="home" aria-label="Retour"><svg><use href="#i-back"/></svg></button><div><span class="kicker" data-i18n="expressKicker">ALLOSERVIX · EXPRESS</span><h2 id="quick-title" data-i18n="quickTitle">Parlez-nous de votre besoin.</h2><p data-i18n="quickDesc">Une phrase suffit pour commencer, même sans vocabulaire technique.</p></div><span class="work-illustration" aria-hidden="true"><svg><use href="#i-spark"/></svg></span></div>
       <div class="work-surface glass"><form id="quick-form" class="quick-form"><label for="quick-input" data-i18n="quickLabel">Qu'est-ce qui vous préoccupe ?</label><textarea id="quick-input" rows="3" maxlength="500" placeholder="Ex : mon ordinateur ne démarre plus, j'ai besoin d'un système de vente..."></textarea><button class="primary-btn" type="submit"><span data-i18n="analyze">Comprendre mon besoin</span><svg><use href="#i-arrow"/></svg></button></form><section class="allo-media" aria-label="Décrire le besoin par la voix ou une photo">
- <div class="allo-media-header"><strong>Décrivez à votre façon · شرح بطريقتك</strong><small>Texte, voix ou photo. Vérifiez toujours le résultat avant de l'envoyer.</small></div>
+ <div class="allo-media-header"><strong data-i18n="mediaTitle">Texte, voix ou photo</strong><small data-i18n="mediaHelp">Vérifiez la description avant tout envoi.</small></div>
  <div class="allo-media-controls">
   <label for="allo-voice-lang">Langue / اللغة</label>
   <select id="allo-voice-lang" aria-label="Langue de la dictée"><option value="ar-SA">العربية الفصحى</option><option value="ar-MA">الدارجة المغربية</option><option value="fr-FR">Français</option><option value="en-US">English</option></select>
@@ -93,7 +107,7 @@
   <input type="file" id="allo-photo" accept="image/jpeg,image/png,image/webp" capture="environment">
   <button type="button" id="allo-analyze-photo" hidden>Comprendre la photo</button>
  </div>
- <label class="allo-media-consent"><input type="checkbox" id="allo-media-consent"> J'accepte le traitement externe du média choisi pour identifier mon besoin, sans réponse automatique. أوافق على تحليل الملف خارجياً لفهم طلبي فقط.</label>
+ <label class="allo-media-consent"><input type="checkbox" id="allo-media-consent"><span data-i18n="mediaConsent">J’autorise le traitement externe du média choisi pour identifier mon besoin.</span></label>
  <p id="allo-media-status" role="status" aria-live="polite">La dictée peut dépendre du navigateur. Aucune photo ni audio n'est envoyé automatiquement.</p>
  </section><div class="hint-grid"><button data-example="pc" data-go="quick"><svg><use href="#i-monitor"/></svg><span>Réinstaller Windows</span></button><button data-example="wifi" data-go="quick"><svg><use href="#i-wifi"/></svg><span>Wi-Fi qui coupe</span></button><button data-example="stock" data-go="quick"><svg><use href="#i-code"/></svg><span>Application métier</span></button><button data-example="cctv" data-go="quick"><svg><use href="#i-camera"/></svg><span>Installer des caméras</span></button></div></div>
     </section>
@@ -108,7 +122,7 @@
 
     <section class="screen work-scene" data-screen="studio" aria-labelledby="studio-title" hidden><div class="work-header"><button class="back-btn" data-go="home" aria-label="Retour"><svg><use href="#i-back"/></svg></button><div><span class="kicker">ALLOSERVIX · DE L'IDÉE À LA SOLUTION</span><h2 id="studio-title" data-i18n="studioTitle">Un seul interlocuteur, une vision d'ensemble.</h2><p data-i18n="studioDesc">Étude, choix des solutions, installation, paramétrage et suivi : votre besoin guide les étapes.</p></div></div><div class="studio-layout"><div class="studio-image" role="img" aria-label="Univers technologiques ALLOSERVIX"></div><div class="studio-steps glass"><div class="studio-step"><span>01</span><div><strong data-i18n="approachOne">Comprendre</strong><p data-i18n="approachOneSub">Écouter votre contexte et vos priorités.</p></div></div><div class="studio-step"><span>02</span><div><strong data-i18n="approachTwo">Proposer</strong><p data-i18n="approachTwoSub">Comparer les solutions et le budget envisageable.</p></div></div><div class="studio-step"><span>03</span><div><strong data-i18n="approachThree">Réaliser</strong><p data-i18n="approachThreeSub">Installer, développer ou configurer selon le projet validé.</p></div></div><div class="studio-step"><span>04</span><div><strong data-i18n="approachFour">Accompagner</strong><p data-i18n="approachFourSub">Documenter, maintenir et faire évoluer.</p></div></div><button data-go="quick" class="primary-btn"><span data-i18n="tellUs">Parler de mon projet</span><svg><use href="#i-arrow"/></svg></button></div></div></section>
   </main>
-<footer class="allo-public-footer"><span>ALLOSERVIX · Casablanca, Maroc</span><a href="/mentions.html" id="privacy-link">Informations et confidentialité / المعلومات والخصوصية</a><span class="footer-disclaimer">Les tarifs, délais et disponibilités sont confirmés par notre équipe.</span></footer>
+<footer class="allo-public-footer"><span>ALLOSERVIX · Casablanca, Maroc</span><a href="/mentions.html" id="privacy-link">Informations et confidentialité / المعلومات والخصوصية</a><span class="footer-disclaimer" data-i18n="availabilityNote">Prix et disponibilité sont confirmés avant tout engagement.</span></footer>
   <nav class="mobile-tabs" aria-label="Navigation mobile"><button data-go="home" class="tab is-active"><svg><use href="#i-home"/></svg><span data-i18n="mobileHome">Accueil</span></button><button data-go="quick" class="tab"><svg><use href="#i-spark"/></svg><span data-i18n="mobileHelp">Ma demande</span></button><button data-go="explore" class="tab"><svg><use href="#i-layers"/></svg><span data-i18n="mobileSolutions">Solutions</span></button><button data-go="studio" class="tab"><svg><use href="#i-shield"/></svg><span data-i18n="mobileAbout">Notre façon</span></button></nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
