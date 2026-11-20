@@ -1,0 +1,41 @@
+name: Browser responsive QA
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium test runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start isolated app
+        run: |
+          mkdir -p /tmp/allo-responsive-qa
+          PORT=8099 ALLO_DB_PATH=/tmp/allo-responsive-qa/allo.sqlite NODE_ENV=test node server.js > /tmp/allo-responsive-server.log 2>&1 &
+          echo $! > /tmp/allo-responsive-server.pid
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8099/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/allo-responsive-server.log
+          exit 1
+      - name: Check five viewport sizes, translations and navigation
+        run: node scripts/qa-responsive.mjs
+      - name: Save viewport screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alloservix-responsive-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/allo-responsive-server.log || true
