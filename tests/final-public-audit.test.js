@@ -17,7 +17,7 @@ test('Four accurate public privacy notices, never claim the live request flow ca
 test('Public and admin share one real brand icon and a visible privacy link',()=>{
  const files=['constellation-v9/index.html','request-v10/index.html','admin/index.html'];
  for(const p of files){const html=read(p);assert.match(html,/\/assets\/favicon\.svg/);assert.match(html,/\/assets\/site\.webmanifest/)}
- assert.match(read('constellation-v9/index.html'),/\/assets\/logo-mark\.svg/);
+ assert.match(read('constellation-v9/index.html'),/\/assets\/logo-wordmark\.svg/);
  assert.match(read('request-v10/index.html'),/\/assets\/logo-mark\.svg/);
  assert.match(read('admin/index.html'),/\/assets\/logo-mark\.svg/);
  assert.match(read('constellation-v9/index.html'),/href="\/mentions\.html"/);
