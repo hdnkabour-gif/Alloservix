@@ -37,4 +37,3 @@
 .sector-card[data-sector="home"]{--sector-image:url("/constellation-v9/assets/home.svg")}
 .sector-card[data-sector="shop"]{--sector-image:url("/constellation-v9/assets/shop.svg")}
 .sector-card[data-sector="company"]{--sector-image:url("/constellation-v9/assets/company.svg")}
-.sector-card[data-sector="industry"]{--sector-image:url("/constellation-v9/assets/industry.svg")}
