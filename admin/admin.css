@@ -157,3 +157,9 @@ input,select,textarea{min-height:40px}
 
 /* Unified mark in authentication heading. */
 .auth-brand{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.auth-brand img{width:37px;height:37px;object-fit:contain;margin-right:5px}.auth-brand small{align-self:center}
+
+/* Brand consistency: professional operations console, not the public marketing layout. */
+:root{--brand:#006F88;--accent:#00AAA7;--nav:#0B1F44;--nav-active:#133C61;--brand-ink:#fff}
+@media(prefers-color-scheme:dark){:root{--brand:#32D1CC;--accent:#2DE0CF;--nav:#071A31;--nav-active:#143D5D;--brand-ink:#071A31}}
+.auth-brand img{object-fit:contain}.nav-item.active{box-shadow:inset 3px 0 0 #00B8B0}.control-hero{background:linear-gradient(118deg,#0B1F44,#075B83 65%,#008F91)}.kpi{border-top-color:var(--accent)}.btn.primary{background:#0B568A;color:#fff;border-color:#0B568A}.btn.primary:hover{background:#07436B}
+@media(max-width:420px){.auth-card{width:calc(100vw - 24px);max-width:100%;padding:clamp(16px,5vw,26px)}.auth-brand img{width:31px;height:31px}}

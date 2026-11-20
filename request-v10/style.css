@@ -2,3 +2,7 @@
 
 /* Consistent accessible locale selector and RTL form presentation. */
 .request-locale-label{display:inline-flex!important;margin:0 8px!important;vertical-align:middle}.request-locale-label select{min-width:140px;max-width:175px;padding:9px 12px;border-radius:12px;border:1px solid #cad5ef;background:#fff;font-weight:700;color:#183453}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}html[dir="rtl"] .hero,html[dir="rtl"] .page{text-align:right}html[dir="rtl"] .header{direction:rtl}html[dir="rtl"] .action-row{direction:rtl}html[dir="rtl"] textarea,html[dir="rtl"] input{text-align:right}@media(max-width:600px){.header{flex-wrap:wrap}.request-locale-label select{min-width:125px}}
+
+/* Consistent ALLOSERVIX palette on the request journey. */
+:root{--navy:#0B1F44;--teal:#00AAA7;--orange:#FF7A00}
+.header{border-bottom-color:#DFE9F1}.brand{color:var(--navy)}.brand .emblem{width:35px;height:35px;object-fit:contain}.request-locale-label select{border-color:#D7E4EC;min-height:44px}.action-row button:focus-visible,.request-locale-label select:focus-visible{outline:3px solid var(--orange);outline-offset:3px}@media(max-width:390px){.header{gap:8px}.brand{font-size:17px}.request-locale-label select{min-width:108px;max-width:132px}}
