@@ -37,6 +37,9 @@ const admin=await request('/api/admin/ai/status');if(admin.status!==401)throw Er
 const privateCenter=await request('/api/admin/control-center');if(privateCenter.status!==401)throw Error('Control center is exposed without a session');
 const adminSession=await request('/api/admin/session');if(adminSession.status!==200)throw Error('Admin session check unavailable');const sess=await adminSession.json();if(sess.configured!==true||sess.authenticated!==false)throw Error('Admin credentials not configured or session not protected');
 const source=await request('/media-understanding.js');if(source.status!==404)throw Error('Private media source exposed');
-const disabledMedia=await request('/api/public/understand-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({allow_external_processing:false})});
+// Paid media endpoints: a script without Origin must be refused (V14 hardening), and a same-origin call must still hit the consent/feature gate.
+const noOriginMedia=await request('/api/public/understand-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({allow_external_processing:false})});
+if(noOriginMedia.status!==403)throw Error('Media endpoint accepted a request without Origin: '+noOriginMedia.status);
+const disabledMedia=await request('/api/public/understand-image',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify({allow_external_processing:false})});
 if(![400,503].includes(disabledMedia.status))throw Error('Media consent/feature gate failed: '+disabledMedia.status);
 console.log('PRODUCTION SMOKE PASSED: health, V13 UI, catalog, mixed text intents, admin/source security and media gate; features:',JSON.stringify(features));
