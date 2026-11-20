@@ -32,3 +32,9 @@
 
 /* Verified identity and clear legal notice. */
 .allo-public-footer{max-width:1500px;margin:8px auto 0;padding:20px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px}.allo-public-footer a{color:#2543bd;text-decoration:underline;text-underline-offset:3px}.footer-disclaimer{max-width:360px}@media(max-width:700px){.allo-public-footer{padding-bottom:90px;justify-content:center;text-align:center}}.identity img.mark{object-fit:contain}
+
+/* Sector illustrations: moved out of inline style to comply with style-src CSP. */
+.sector-card[data-sector="home"]{--sector-image:url("/constellation-v9/assets/home.svg")}
+.sector-card[data-sector="shop"]{--sector-image:url("/constellation-v9/assets/shop.svg")}
+.sector-card[data-sector="company"]{--sector-image:url("/constellation-v9/assets/company.svg")}
+.sector-card[data-sector="industry"]{--sector-image:url("/constellation-v9/assets/industry.svg")}
