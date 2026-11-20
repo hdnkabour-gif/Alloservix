@@ -99,13 +99,13 @@
       <div class="work-surface glass"><form id="quick-form" class="quick-form"><label for="quick-input" data-i18n="quickLabel">Qu'est-ce qui vous préoccupe ?</label><textarea id="quick-input" rows="3" maxlength="500" placeholder="Ex : mon ordinateur ne démarre plus, j'ai besoin d'un système de vente..."></textarea><button class="primary-btn" type="submit"><span data-i18n="analyze">Comprendre mon besoin</span><svg><use href="#i-arrow"/></svg></button></form><section class="allo-media" aria-label="Décrire le besoin par la voix ou une photo">
  <div class="allo-media-header"><strong data-i18n="mediaTitle">Texte, voix ou photo</strong><small data-i18n="mediaHelp">Vérifiez la description avant tout envoi.</small></div>
  <div class="allo-media-controls">
-  <label for="allo-voice-lang">Langue / اللغة</label>
+  <label for="allo-voice-lang" data-i18n="mediaLabel">Langue de la dictée</label>
   <select id="allo-voice-lang" aria-label="Langue de la dictée"><option value="ar-SA">العربية الفصحى</option><option value="ar-MA">الدارجة المغربية</option><option value="fr-FR">Français</option><option value="en-US">English</option></select>
-  <button type="button" id="allo-dictate">🎙️ Dictée / إملاء</button>
-  <button type="button" id="allo-cloud-voice" hidden>🎤 Transcription IA (10 s)</button>
-  <label class="allo-file-label" for="allo-photo">📷 Photo / صورة</label>
+  <button type="button" id="allo-dictate" data-i18n="mediaVoice">Dictée vocale</button>
+  <button type="button" id="allo-cloud-voice" data-i18n="mediaCloud" hidden>Transcription vocale IA (10 s)</button>
+  <label class="allo-file-label" for="allo-photo" data-i18n="mediaPhoto">Photo du problème</label>
   <input type="file" id="allo-photo" accept="image/jpeg,image/png,image/webp" capture="environment">
-  <button type="button" id="allo-analyze-photo" hidden>Comprendre la photo</button>
+  <button type="button" id="allo-analyze-photo" data-i18n="mediaAnalyze" hidden>Analyser cette photo</button>
  </div>
  <label class="allo-media-consent"><input type="checkbox" id="allo-media-consent"><span data-i18n="mediaConsent">J’autorise le traitement externe du média choisi pour identifier mon besoin.</span></label>
  <p id="allo-media-status" role="status" aria-live="polite">La dictée peut dépendre du navigateur. Aucune photo ni audio n'est envoyé automatiquement.</p>
