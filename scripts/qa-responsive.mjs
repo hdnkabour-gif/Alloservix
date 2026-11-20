@@ -19,6 +19,16 @@ try{
    assert.ok(metrics.body<=width+2,JSON.stringify({width,metrics})+' horizontal body overflow');
    assert.ok(metrics.brand>=140,'brand must remain readable at '+width);
    assert.ok(metrics.cta>=42,'primary action must remain touchable at '+width);
+   const visual=await page.evaluate(()=>{
+     const cards=['home','shop','company'].map(sector=>{const el=document.querySelector('.sector-card[data-sector="'+sector+'"]');return {sector,background:getComputedStyle(el).getPropertyValue('--sector-image').trim(),box:el.getBoundingClientRect().width}});
+     const icons=[...document.querySelectorAll('.popular-grid svg use')].map(x=>x.getAttribute('href'));
+     return {cards,icons,logoImage:document.querySelector('.brand-wordmark')?.complete};
+   });
+   for(const card of visual.cards)assert.match(card.background,/assets\/(home|shop|company)\.svg/, 'sector image missing: '+card.sector);
+   assert.equal(visual.logoImage,true,'logo failed to load');
+   assert.notEqual(visual.icons[0],visual.icons[8],'Wi-Fi and router icons must differ');
+   assert.ok(visual.icons.includes('#i-intercom')&&visual.icons.includes('#i-tv'),'intercom and TV icons should differ');
+
    const btn=page.locator('[data-lang="ar"]');
    await btn.click();
    assert.equal(await page.locator('html').getAttribute('dir'),'rtl','Arabic must be RTL');
