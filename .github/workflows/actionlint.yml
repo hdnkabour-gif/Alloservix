@@ -1,0 +1,27 @@
+name: Workflow syntax lint (isolated)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+# Read-only static analysis of workflow YAML. No deployment, secrets or DB access.
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository without persisted credentials
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate GitHub Actions workflows
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
