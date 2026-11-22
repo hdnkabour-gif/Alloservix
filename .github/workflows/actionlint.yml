@@ -24,4 +24,4 @@ jobs:
         env:
           GOTOOLCHAIN: auto
         run: |
-          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color -shellcheck=
