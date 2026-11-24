@@ -58,18 +58,30 @@ test('one synthetic mobile request: private row, admin inbox shows exact service
   assert.ok(!('phone' in ok.body)&&!('email' in ok.body));
 });
 
-test('double tap / network retry of the same submission creates ONE request',{todo:'#31 gap: no idempotency key or duplicate window in operations.createRequest'},async()=>{
-  const body=valid({title:'TEST double tap',phone:'+212600000078'});
+test('a retry of the SAME submission (lost response) returns the same reference and one row; a different request stays possible',async()=>{
+  const sid='sub-'+'a'.repeat(28);
+  const body=valid({title:'TEST double tap',phone:'+212600000078',submission_id:sid});
   const a=await submit(body),b=await submit(body);
-  assert.equal(a.status,201);
-  const n=(await owner.get('/api/admin/ops/requests')).body.requests.filter(x=>x.title==='TEST double tap').length;
-  assert.equal(n,1,`second submission status ${b.status}`);
+  assert.equal(a.status,201,JSON.stringify(a.body));assert.equal(b.status,200,JSON.stringify(b.body));
+  assert.equal(b.body.tracking_code,a.body.tracking_code,'same reference');
+  assert.equal(b.body.replayed,true);
+  const rows=(await owner.get('/api/admin/ops/requests')).body.requests.filter(x=>x.tracking_code===a.body.tracking_code);
+  assert.equal(rows.length,1,'one row');
+  const detail=(await owner.get('/api/admin/ops/requests/'+a.body.tracking_code)).body.request;
+  assert.equal(detail.events.filter(e=>e.action==='created').length,1,'one creation event');
+  // The response of the first call may never have arrived: the code returned by the retry works.
+  const track=t=>new Client(srv.url).call('GET','/api/public/requests/'+a.body.tracking_code,undefined,{'X-Request-Token':t});
+  assert.equal((await track(b.body.access_token)).status,200);
+  // Same submission id with different content is refused (409), not silently merged.
+  assert.equal((await submit({...body,description:'TEST autre contenu sous le même identifiant'})).status,409);
 });
 
-test('campaign source (QR carte/flyer/enveloppe) is kept on the request for the inbox',{todo:'#31 gap: service_requests has no campaign/source column'},async()=>{
-  const r=await submit(valid({title:'TEST flyer',source:'flyer'}));assert.equal(r.status,201);
+test('the inbox keeps language, allowlisted campaign source and a server-side consent record',async()=>{
+  const r=await submit(valid({title:'TEST flyer',source:'flyer',language:'darija',submission_id:'sub-'+'b'.repeat(28)}));assert.equal(r.status,201,JSON.stringify(r.body));
   const row=(await owner.get('/api/admin/ops/requests')).body.requests.find(x=>x.tracking_code===r.body.tracking_code);
-  assert.equal(row.source??row.campaign,'flyer');
+  assert.equal(row.campaign_source,'flyer');assert.equal(row.language,'darija');
+  assert.match(row.consent_notice_version,/^\d{4}-\d{2}-\d{2}$/);assert.ok(row.consent_at);
+  assert.ok(!('submission_hash' in row),'the retry key is never exposed');
 });
 
 test('a new request triggers one team alert through a (mock) notifier',{todo:'#31 gap: no notification adapter exists; nothing alerts the team'},async()=>{

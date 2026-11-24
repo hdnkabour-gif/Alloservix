@@ -8,7 +8,12 @@ const sectors=['home','villa','shop','workshop','office','company','factory','wa
 const channels=['phone','whatsapp','email'];
 const levels=['junior','confirmed','expert','specialist'];
 const clean=(x,n=120)=>typeof x==='string'?x.trim().slice(0,n):'';
-const fail=msg=>{const e=new Error(msg);e.public=true;throw e};
+const fail=(msg,status)=>{const e=new Error(msg);e.public=true;if(status)e.status=status;throw e};
+// #31: version of the privacy notice the visitor accepts (recorded server-side with each request).
+const CONSENT_NOTICE_VERSION='2026-11-24';
+const languages=['fr','ar','darija','en'];
+// Allowlisted campaign labels only (QR codes on cards, flyers, envelopes): never free text or PII.
+const campaignSources=['carte','flyer','enveloppe','business-card','sticker'];
 function createOperations(db, options={}) {
   const getKey=()=>{const h=process.env.ALLO_DATA_KEY||options.key||'';if(!/^[0-9a-f]{64}$/i.test(h))fail('Private data encryption is not configured');return Buffer.from(h,'hex')};
   const encrypt=v=>{const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',getKey(),iv);const data=Buffer.concat([cipher.update(JSON.stringify(v),'utf8'),cipher.final()]);return Buffer.concat([iv,cipher.getAuthTag(),data]).toString('base64')};
@@ -53,6 +58,11 @@ function createOperations(db, options={}) {
   function isConfigured(){try{getKey();return true}catch{return false}}
   function checkString(x,name,max=200,required=true){const y=clean(x,max+1);if((required&&!y)||(y.length>max))fail('Invalid '+name);return y}
   function validChoice(x,name,arr){if(!arr.includes(x))fail('Invalid '+name);return x}
+  // #31 additive migration: retry key, language, campaign source and consent record.
+  {const cols=new Set(db.prepare('PRAGMA table_info(service_requests)').all().map(c=>c.name));
+   for(const [c,def] of [['submission_hash','TEXT'],['submission_fingerprint',"TEXT NOT NULL DEFAULT ''"],['language',"TEXT NOT NULL DEFAULT ''"],['campaign_source',"TEXT NOT NULL DEFAULT ''"],['consent_notice_version',"TEXT NOT NULL DEFAULT ''"],['consent_at',"TEXT NOT NULL DEFAULT ''"]])
+     if(!cols.has(c))db.exec(`ALTER TABLE service_requests ADD COLUMN ${c} ${def}`);
+   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_submission ON service_requests(submission_hash) WHERE submission_hash IS NOT NULL');}
   const getRequest=id=>db.prepare('SELECT * FROM service_requests WHERE id=? OR tracking_code=?').get(id,id);
   const getTechnician=id=>db.prepare('SELECT * FROM technicians WHERE id=?').get(id);
   const event=(id,action,actor,note='',a='',b='')=>db.prepare('INSERT INTO request_events(request_id,created_at,action,actor,note,old_status,new_status) VALUES(?,?,?,?,?,?,?)').run(id,now(),action,actor,clean(note,500),a,b);
@@ -75,12 +85,30 @@ function createOperations(db, options={}) {
     if(answers.length>3)fail('Maximum three answers');
     const sanitized=answers.map(a=>{if(!a||typeof a!=='object')fail('Invalid answers');return {question:checkString(a.question,'question',160),answer:checkString(a.answer,'answer',250)}});
     const budget=clean(b.budget,100),id=crypto.randomUUID(),secret=crypto.randomBytes(32).toString('hex');
+    const language=languages.includes(b.language)?b.language:'fr',campaign_source=campaignSources.includes(b.source)?b.source:'';
+    // #31: one submission = one request. The form sends a random submission_id kept across retries; a
+    // retry whose first response was lost gets the SAME reference and a fresh tracking secret (the
+    // first one never reached the visitor). Same id with different content is refused.
+    const sid=b.submission_id===undefined?'':String(b.submission_id);
+    if(sid&&!/^[A-Za-z0-9-]{16,64}$/.test(sid))fail('Invalid submission_id');
+    const submission_hash=sid?hash('submission:'+sid):null;
+    const fingerprint=hash(JSON.stringify([type,sector,channel,name,phone,email,city,zone,title,description,service,sanitized,budget,language,campaign_source]));
+    if(submission_hash){
+      const prior=db.prepare('SELECT id,tracking_code,status,submission_fingerprint FROM service_requests WHERE submission_hash=?').get(submission_hash);
+      if(prior){
+        if(prior.submission_fingerprint!==fingerprint)fail('This submission was already sent with different content',409);
+        db.prepare('UPDATE service_requests SET secret_hash=? WHERE id=?').run(hash(secret),prior.id);
+        event(prior.id,'retry_acknowledged','visitor','','',prior.status);
+        return {tracking_code:prior.tracking_code,access_token:secret,status:prior.status,replayed:true,message:'Request already registered. No appointment or price confirmed.'};
+      }
+    }
     // Tracking code is not authentication. Secret is returned only once.
     const tracking_code='AS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
     // Everything the customer typed freely may contain personal data: it lives only inside the encrypted blob.
     const private_data=encrypt({name,phone,email,address:clean(b.address,240),notes:clean(b.notes,600),title,description,answers:sanitized,budget});
-    db.prepare(`INSERT INTO service_requests(id,tracking_code,secret_hash,created_at,updated_at,status,type,sector,city,zone,service_slug,title,description,answers_json,budget,preferred_channel,private_data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,tracking_code,hash(secret),now(),now(),'new',type,sector,city,zone,service,PLACEHOLDER,'','[]','',channel,private_data);
-    event(id,'created','visitor','','','new');
+    const at=now();
+    db.prepare(`INSERT INTO service_requests(id,tracking_code,secret_hash,created_at,updated_at,status,type,sector,city,zone,service_slug,title,description,answers_json,budget,preferred_channel,private_data,submission_hash,submission_fingerprint,language,campaign_source,consent_notice_version,consent_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,tracking_code,hash(secret),at,at,'new',type,sector,city,zone,service,PLACEHOLDER,'','[]','',channel,private_data,submission_hash,submission_hash?fingerprint:'',language,campaign_source,CONSENT_NOTICE_VERSION,at);
+    event(id,'created','visitor','consent:'+CONSENT_NOTICE_VERSION,'','new');
     return {tracking_code,access_token:secret,status:'new',message:'Request registered for internal review. No appointment or price confirmed.'};
   }
   function publicStatus(code,token){
@@ -91,7 +119,7 @@ function createOperations(db, options={}) {
     let title=r.title;try{const p=decrypt(r.private_data);if(typeof p.title==='string')title=p.title}catch{/* legacy row */}
     return {tracking_code:r.tracking_code,status:r.status,created_at:r.created_at,updated_at:r.updated_at,title,city:r.city};
   }
-  function adminRequest(r,detail=false){const {secret_hash,private_data,answers_json:_aj,...safe}=r;const p=decrypt(private_data),legacy=p.title===undefined;const {title:_t,description:_d,answers:_a,budget:_b,...contact}=p;
+  function adminRequest(r,detail=false){const {secret_hash,private_data,answers_json:_aj,submission_hash:_sh,submission_fingerprint:_sf,...safe}=r;const p=decrypt(private_data),legacy=p.title===undefined;const {title:_t,description:_d,answers:_a,budget:_b,...contact}=p;
     return {...safe,title:legacy?r.title:p.title,budget:legacy?r.budget:p.budget,description:detail?(legacy?r.description:p.description):'',answers:detail?(legacy?JSON.parse(r.answers_json):p.answers):[],legacy_plaintext:legacy,...(detail?{contact,events:db.prepare('SELECT created_at,action,actor,note,old_status,new_status FROM request_events WHERE request_id=? ORDER BY id DESC').all(r.id)}:{})};}
   function listRequests(filter={}){const rows=filter.technician_id?db.prepare('SELECT * FROM service_requests WHERE assigned_technician_id=? ORDER BY created_at DESC LIMIT 100').all(filter.technician_id):db.prepare('SELECT * FROM service_requests ORDER BY created_at DESC LIMIT 100').all();return rows.map(r=>adminRequest(r,false))}
   function requestDetail(id){const r=getRequest(id);return r?adminRequest(r,true):null}

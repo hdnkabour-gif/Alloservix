@@ -137,6 +137,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     if(!checkRate('request:'+clientId(req),5,3600000))return response(res,429,{error:'Too many requests'});
     const body=await bodyJson(req);
     const created=operations.createRequest(body,slug=>{const s=store.getService(slug);return !!s&&s.published&&s.status!=='Indisponible'});
+    if(created.replayed){store.logAudit('request_retry',created.tracking_code,'public form retry');return response(res,200,created)}
     store.logAudit('request_created',created.tracking_code,'public form');return response(res,201,created);
   }
   if(p.startsWith('/api/public/requests/')&&method==='GET'){
