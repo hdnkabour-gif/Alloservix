@@ -92,7 +92,9 @@ function createOperations(db, options={}) {
     const sid=b.submission_id===undefined?'':String(b.submission_id);
     if(sid&&!/^[A-Za-z0-9-]{16,64}$/.test(sid))fail('Invalid submission_id');
     const submission_hash=sid?hash('submission:'+sid):null;
-    const fingerprint=hash(JSON.stringify([type,sector,channel,name,phone,email,city,zone,title,description,service,sanitized,budget,language,campaign_source]));
+    const address=clean(b.address,240),notes=clean(b.notes,600);
+    // Every field the request stores is compared: a retry under the same id must be the SAME request.
+    const fingerprint=hash(JSON.stringify([type,sector,channel,name,phone,email,city,zone,title,description,service,sanitized,budget,language,campaign_source,address,notes]));
     if(submission_hash){
       const prior=db.prepare('SELECT id,tracking_code,status,submission_fingerprint FROM service_requests WHERE submission_hash=?').get(submission_hash);
       if(prior){
@@ -105,7 +107,7 @@ function createOperations(db, options={}) {
     // Tracking code is not authentication. Secret is returned only once.
     const tracking_code='AS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
     // Everything the customer typed freely may contain personal data: it lives only inside the encrypted blob.
-    const private_data=encrypt({name,phone,email,address:clean(b.address,240),notes:clean(b.notes,600),title,description,answers:sanitized,budget});
+    const private_data=encrypt({name,phone,email,address,notes,title,description,answers:sanitized,budget});
     const at=now();
     db.prepare(`INSERT INTO service_requests(id,tracking_code,secret_hash,created_at,updated_at,status,type,sector,city,zone,service_slug,title,description,answers_json,budget,preferred_channel,private_data,submission_hash,submission_fingerprint,language,campaign_source,consent_notice_version,consent_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id,tracking_code,hash(secret),at,at,'new',type,sector,city,zone,service,PLACEHOLDER,'','[]','',channel,private_data,submission_hash,submission_hash?fingerprint:'',language,campaign_source,CONSENT_NOTICE_VERSION,at);
     event(id,'created','visitor','consent:'+CONSENT_NOTICE_VERSION,'','new');

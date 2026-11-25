@@ -76,6 +76,18 @@ test('a retry of the SAME submission (lost response) returns the same reference 
   assert.equal((await submit({...body,description:'TEST autre contenu sous le même identifiant'})).status,409);
 });
 
+test('address and notes are part of the retry comparison: a corrected address or note under the same id is a conflict, not a silent replay',async()=>{
+  const own=await startServer();
+  try{
+    const post=b=>new Client(own.url).call('POST','/api/public/requests',b,MOBILE);
+    const body=valid({title:'TEST adresse',submission_id:'sub-'+'c'.repeat(28),address:'TEST 1 rue Exemple',notes:'TEST sonner deux fois'});
+    assert.equal((await post(body)).status,201);
+    assert.equal((await post({...body,address:'TEST 2 rue Exemple'})).status,409,'changed address');
+    assert.equal((await post({...body,notes:'TEST appeler avant'})).status,409,'changed notes');
+    assert.equal((await post(body)).status,200,'identical retry is still a replay');
+  }finally{own.stop()}
+});
+
 test('the inbox keeps language, allowlisted campaign source and a server-side consent record',async()=>{
   const r=await submit(valid({title:'TEST flyer',source:'flyer',language:'darija',submission_id:'sub-'+'b'.repeat(28)}));assert.equal(r.status,201,JSON.stringify(r.body));
   const row=(await owner.get('/api/admin/ops/requests')).body.requests.find(x=>x.tracking_code===r.body.tracking_code);
