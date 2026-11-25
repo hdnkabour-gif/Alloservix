@@ -6,6 +6,7 @@ const aiIntent=require('./ai-intent-router');
 const media=require('./media-understanding');
 const studio=require('./knowledge-studio').createStudio(store.db,store,JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories.map(c=>c.id));
 const operations=require('./operations').createOperations(store.db,{getService:store.getService});
+const notifier=require('./notifier').createNotifier(store.db);
 const rbac=require('./rbac');
 const {createAuth,totpValid,passwordValid}=require('./auth');
 const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
@@ -137,7 +138,12 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     if(!checkRate('request:'+clientId(req),5,3600000))return response(res,429,{error:'Too many requests'});
     const body=await bodyJson(req);
     const created=operations.createRequest(body,slug=>{const s=store.getService(slug);return !!s&&s.published&&s.status!=='Indisponible'});
-    store.logAudit('request_created',created.tracking_code,'public form');return response(res,201,created);
+    // A retry of the same submission returns the same reference and never triggers a second alert.
+    if(created.replayed){store.logAudit('request_retry',created.tracking_code,'public form retry');return response(res,200,created)}
+    store.logAudit('request_created',created.tracking_code,'public form');
+    // #31: one team alert per request (deduplicated, delivery recorded). A failed alert never fails the request.
+    notifier.notify('request_created',created.tracking_code,{reference:created.tracking_code,service:typeof body.service_slug==='string'?body.service_slug.slice(0,100):'',city:typeof body.city==='string'?body.city.slice(0,90):''}).catch(()=>console.error('Team notification could not be recorded'));
+    return response(res,201,created);
   }
   if(p.startsWith('/api/public/requests/')&&method==='GET'){
     if(process.env.ENABLE_REQUESTS!=='true'||!operations.isConfigured())return response(res,503,{error:'Requests are not activated yet'});
@@ -200,6 +206,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     const isTech=actor.role==='technician';
     const techScope=r=>!isTech||(r&&actor.technician_id&&r.assigned_technician_id===actor.technician_id);
     const redactFor=r=>{if(r&&r.contact&&!rbac.can(actor.role,'requests.pii')&&!(isTech&&['assigned','in_progress'].includes(r.status))){const {contact,...rest}=r;return rest}return r};
+    if(p==='/api/admin/ops/notifications'&&method==='GET')return response(res,200,{transport:notifier.transport,notifications:notifier.list()});
     if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests(isTech?{technician_id:actor.technician_id||'-'}:{})});
     if(/^\/api\/admin\/ops\/requests\/[^/]+$/.test(p)&&method==='GET'){
       const x=operations.requestDetail(p.split('/').at(-1));return x&&techScope(x)?response(res,200,{request:redactFor(x)}):response(res,404,{error:'Not found'});
