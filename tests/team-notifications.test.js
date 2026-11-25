@@ -72,3 +72,30 @@ test('the notifier never alerts twice for the same event (dedup by event key), e
     assert.throws(()=>require('../notifier').createNotifier(new DatabaseSync(':memory:'),{transport:'smtp'}),/Unknown NOTIFY_TRANSPORT/);
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
+
+test('two processes notifying the same event at the same time send ONE alert (atomic claim before sending)',()=>{
+  // Two connections on one SQLite file stand for two server processes. While process A is inside
+  // its transport call, process B handles the same event: B must see A's claim and send nothing.
+  const {DatabaseSync}=require('node:sqlite'),os=require('node:os');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'allo-notif-race-')),file=path.join(dir,'race.sqlite');
+  try{
+    const {createNotifier}=require('../notifier');
+    const dbA=new DatabaseSync(file),dbB=new DatabaseSync(file);
+    let sent=0,inner=null;
+    const b=createNotifier(dbB,{transport:'mock',dataDir:dir});
+    const a=createNotifier(dbA,{transport:'mock',dataDir:dir,send:()=>{sent++;inner=b.notify('request_created','AS-RACE',{reference:'AS-RACE'});}});
+    b.setSend(()=>{sent++;});
+    const first=a.notify('request_created','AS-RACE',{reference:'AS-RACE'});
+    assert.equal(first.status,'delivered');
+    assert.equal(inner.status,'sending','the concurrent call sees the claim and does not send');
+    assert.equal(sent,1,'exactly one alert left the system');
+    const rows=dbA.prepare('SELECT status,attempts FROM notification_deliveries').all();
+    assert.equal(rows.length,1);assert.equal(rows[0].status,'delivered');assert.equal(rows[0].attempts,1);
+    // A claim left by a crashed process is taken over only after its lease (no double send before).
+    dbA.prepare("INSERT INTO notification_deliveries(event_key,kind,reference,channel,status,attempts,created_at,updated_at) VALUES('request_created:AS-STUCK','request_created','AS-STUCK','mock','sending',1,?,?)").run(new Date(Date.now()-60_000).toISOString(),new Date(Date.now()-60_000).toISOString());
+    assert.equal(b.notify('request_created','AS-STUCK',{reference:'AS-STUCK'}).status,'sending');assert.equal(sent,1);
+    dbA.prepare("UPDATE notification_deliveries SET updated_at=? WHERE event_key='request_created:AS-STUCK'").run(new Date(Date.now()-10*60_000).toISOString());
+    assert.equal(b.notify('request_created','AS-STUCK',{reference:'AS-STUCK'}).status,'delivered');assert.equal(sent,2);
+    dbA.close();dbB.close();
+  }finally{fs.rmSync(dir,{recursive:true,force:true})}
+});
