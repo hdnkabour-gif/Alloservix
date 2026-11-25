@@ -63,6 +63,7 @@ const ROUTES = [
   ['PUT', /^\/api\/admin\/studio\/(?:concepts|links)\/[1-9][0-9]{0,8}$/, 'knowledge.edit'],
   ['GET', /^\/api\/admin\/ai\/status$/, 'ai.monitor'],
   ['GET', /^\/api\/admin\/ops\/config$/, 'requests.view'],
+  ['GET', /^\/api\/admin\/ops\/notifications$/, 'requests.manage'],
   ['GET', /^\/api\/admin\/ops\/requests$/, 'requests.view'],
   ['GET', /^\/api\/admin\/ops\/requests\/[^/]+$/, 'requests.view'],
   ['PUT', /^\/api\/admin\/ops\/requests\/[^/]+\/classify$/, 'requests.manage'],

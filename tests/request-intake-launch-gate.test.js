@@ -96,8 +96,15 @@ test('the inbox keeps language, allowlisted campaign source and a server-side co
   assert.ok(!('submission_hash' in row),'the retry key is never exposed');
 });
 
-test('a new request triggers one team alert through a (mock) notifier',{todo:'#31 gap: no notification adapter exists; nothing alerts the team'},async()=>{
-  const r=await submit(valid({title:'TEST alerte'}));assert.equal(r.status,201);
-  const notes=await owner.get('/api/admin/ops/notifications');
-  assert.equal(notes.status,200);assert.ok(notes.body.notifications.some(n=>n.tracking_code===r.body.tracking_code));
+test('a new request triggers one team alert; a retry of the same submission does not trigger a second one',async()=>{
+  const own=await startServer({NOTIFY_TRANSPORT:'mock'});   // own server: per-address limit, mock transport
+  try{
+    const adm=new Client(own.url);assert.equal((await adm.login(own.owner.email,own.owner.password,own.owner.secret)).status,200);
+    const post=b=>new Client(own.url).call('POST','/api/public/requests',b,MOBILE);
+    const body=valid({title:'TEST alerte',submission_id:'sub-'+'d'.repeat(28)});
+    const r=await post(body);assert.equal(r.status,201);
+    assert.equal((await post(body)).status,200,'retry');
+    const log=(await adm.get('/api/admin/ops/notifications')).body.notifications;
+    assert.equal(log.length,1);assert.equal(log[0].reference,r.body.tracking_code);assert.equal(log[0].status,'delivered');
+  }finally{own.stop()}
 });
