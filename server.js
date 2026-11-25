@@ -6,7 +6,9 @@ const aiIntent=require('./ai-intent-router');
 const media=require('./media-understanding');
 const studio=require('./knowledge-studio').createStudio(store.db,store,JSON.parse(fs.readFileSync(path.join(__dirname,'assets/services.json'),'utf8')).categories.map(c=>c.id));
 const operations=require('./operations').createOperations(store.db,{getService:store.getService});
-const notifier=require('./notifier').createNotifier(store.db);
+const webpush=require('./webpush');
+const pushStore=webpush.createPushStore(store.db),vapid=webpush.vapidFromEnv();
+const notifier=require('./notifier').createNotifier(store.db,process.env.NOTIFY_TRANSPORT==='webpush'&&vapid?{send:webpush.createWebPushTransport({store:pushStore,vapid})}:{});
 const rbac=require('./rbac');
 const {createAuth,totpValid,passwordValid}=require('./auth');
 const auth=createAuth(store.db,{audit:(action,resource,details,actor)=>store.logAudit(action,resource,details,actor)});
@@ -206,6 +208,12 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     const isTech=actor.role==='technician';
     const techScope=r=>!isTech||(r&&actor.technician_id&&r.assigned_technician_id===actor.technician_id);
     const redactFor=r=>{if(r&&r.contact&&!rbac.can(actor.role,'requests.pii')&&!(isTech&&['assigned','in_progress'].includes(r.status))){const {contact,...rest}=r;return rest}return r};
+    // #31 Web Push: a manager/owner registers THIS device for team alerts (endpoint of a known push service only).
+    if(p==='/api/admin/push/config'&&method==='GET')return response(res,200,{transport:notifier.transport,enabled:notifier.transport==='webpush'&&!!vapid,public_key:vapid?vapid.publicKey:null,devices:pushStore.counts()});
+    if(p==='/api/admin/push/subscriptions'&&(method==='POST'||method==='DELETE')){const b=await bodyJson(req),endpoint=typeof b.endpoint==='string'?b.endpoint:'';
+      if(!webpush.allowedEndpoint(endpoint))return response(res,400,{error:'Point de notification non autorisé'});
+      if(method==='POST'){pushStore.add(endpoint,actor.email||actor.label);A('push_subscribed','device','');return response(res,201,{ok:true})}
+      pushStore.remove(endpoint);A('push_unsubscribed','device','');return response(res,200,{ok:true});}
     if(p==='/api/admin/ops/notifications'&&method==='GET')return response(res,200,{transport:notifier.transport,notifications:notifier.list()});
     if(p==='/api/admin/ops/requests'&&method==='GET')return response(res,200,{requests:operations.listRequests(isTech?{technician_id:actor.technician_id||'-'}:{})});
     if(/^\/api\/admin\/ops\/requests\/[^/]+$/.test(p)&&method==='GET'){

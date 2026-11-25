@@ -31,9 +31,12 @@ function createNotifier(db, { transport = process.env.NOTIFY_TRANSPORT || 'none'
   const transports = {
     none: null,
     mock: message => { fs.mkdirSync(dataDir, { recursive: true }); fs.appendFileSync(outbox, JSON.stringify(message) + '\n', { mode: 0o600 }); },
-    'mock-fail': () => { throw new Error('mock transport failure'); }
+    'mock-fail': () => { throw new Error('mock transport failure'); },
+    // Web Push (webpush.js): the server passes the configured sender; without VAPID keys start-up stops.
+    webpush: null
   };
   if (!Object.hasOwn(transports, transport)) throw new Error('Unknown NOTIFY_TRANSPORT');
+  if (transport === 'webpush' && !sendOverride) throw new Error('NOTIFY_TRANSPORT=webpush requires PUSH_VAPID_* keys');
   let send = sendOverride || transports[transport];
 
   // Atomic claim (#34 review): only the process whose UPDATE changes the row may send, and it receives a

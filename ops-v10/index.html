@@ -2,7 +2,7 @@
 <header class="top"><a class="brand" href="/admin">ALLO<span>SERVIX</span> / OPERATIONS</a><div><a href="/admin">← Administration</a> <a href="/request-v10/index.html">Portail client</a></div></header>
 <main id="app" class="shell" hidden>
 <div class="heading"><div><span class="eyebrow">CENTRE DE DISPATCH</span><h1>Demandes & techniciens</h1><p>ALLOSERVIX sélectionne les professionnels qualifiés et valide chaque affectation.</p></div><span class="pill" id="protection">Accès protégé</span></div>
-<nav class="tabs" aria-label="Opérations"><button id="show-requests" class="active" type="button">Demandes clients</button><button id="show-techs" type="button">Techniciens</button><button id="show-new-tech" type="button">+ Nouveau technicien</button></nav>
+<nav class="tabs" aria-label="Opérations"><button id="show-requests" class="active" type="button">Demandes clients</button><button id="show-techs" type="button">Techniciens</button><button id="show-new-tech" type="button">+ Nouveau technicien</button><button id="enable-push" type="button" hidden>🔔 Alertes sur cet appareil</button></nav>
 <div id="message" role="status" aria-live="polite"></div>
 <section id="requests-view"><div class="columns"><div class="panel"><h2>Demandes reçues</h2><p class="muted">Une demande n'est pas automatiquement une réservation.</p><div id="request-list" class="stack"></div></div><div class="panel" id="request-details"><p class="muted">Sélectionnez une demande pour examiner le dossier.</p></div></div></section>
 <section id="techs-view" hidden><div class="panel"><h2>Répertoire des techniciens</h2><p class="muted">Profils privés. Les compétences sont approuvées par prestation et l'affectation exige une validation.</p><div id="tech-list" class="stack"></div></div></section>
