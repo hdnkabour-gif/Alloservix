@@ -60,20 +60,20 @@ test('the delivery log is private: 401 anonymous; only roles with requests.manag
   });
 });
 
-test('the notifier never alerts twice for the same event (dedup by event key), even when called again',()=>{
+test('the notifier never alerts twice for the same event (dedup by event key), even when called again',async()=>{
   const {DatabaseSync}=require('node:sqlite'),os=require('node:os');
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'allo-notif-'));
   try{
     const n=require('../notifier').createNotifier(new DatabaseSync(':memory:'),{transport:'mock',dataDir:dir});
-    assert.equal(n.notify('request_created','AS-1',{reference:'AS-1'}).status,'delivered');
-    assert.deepEqual(n.notify('request_created','AS-1',{reference:'AS-1'}),{status:'delivered',duplicate:true});
+    assert.equal((await n.notify('request_created','AS-1',{reference:'AS-1'})).status,'delivered');
+    assert.deepEqual(await n.notify('request_created','AS-1',{reference:'AS-1'}),{status:'delivered',duplicate:true});
     assert.equal(fs.readFileSync(path.join(dir,'mock-outbox.jsonl'),'utf8').trim().split('\n').length,1);
     assert.equal(n.list().length,1);
     assert.throws(()=>require('../notifier').createNotifier(new DatabaseSync(':memory:'),{transport:'smtp'}),/Unknown NOTIFY_TRANSPORT/);
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
 
-test('two processes notifying the same event at the same time send ONE alert (atomic claim before sending)',()=>{
+test('two processes notifying the same event at the same time send ONE alert (atomic claim before sending)',async()=>{
   // Two connections on one SQLite file stand for two server processes. While process A is inside
   // its transport call, process B handles the same event: B must see A's claim and send nothing.
   const {DatabaseSync}=require('node:sqlite'),os=require('node:os');
@@ -85,7 +85,7 @@ test('two processes notifying the same event at the same time send ONE alert (at
     const b=createNotifier(dbB,{transport:'mock',dataDir:dir});
     const a=createNotifier(dbA,{transport:'mock',dataDir:dir,send:()=>{sent++;inner=b.notify('request_created','AS-RACE',{reference:'AS-RACE'});}});
     b.setSend(()=>{sent++;});
-    const first=a.notify('request_created','AS-RACE',{reference:'AS-RACE'});
+    const first=await a.notify('request_created','AS-RACE',{reference:'AS-RACE'});inner=await inner;
     assert.equal(first.status,'delivered');
     assert.equal(inner.status,'sending','the concurrent call sees the claim and does not send');
     assert.equal(sent,1,'exactly one alert left the system');
@@ -93,9 +93,45 @@ test('two processes notifying the same event at the same time send ONE alert (at
     assert.equal(rows.length,1);assert.equal(rows[0].status,'delivered');assert.equal(rows[0].attempts,1);
     // A claim left by a crashed process is taken over only after its lease (no double send before).
     dbA.prepare("INSERT INTO notification_deliveries(event_key,kind,reference,channel,status,attempts,created_at,updated_at) VALUES('request_created:AS-STUCK','request_created','AS-STUCK','mock','sending',1,?,?)").run(new Date(Date.now()-60_000).toISOString(),new Date(Date.now()-60_000).toISOString());
-    assert.equal(b.notify('request_created','AS-STUCK',{reference:'AS-STUCK'}).status,'sending');assert.equal(sent,1);
+    assert.equal((await b.notify('request_created','AS-STUCK',{reference:'AS-STUCK'})).status,'sending');assert.equal(sent,1);
     dbA.prepare("UPDATE notification_deliveries SET updated_at=? WHERE event_key='request_created:AS-STUCK'").run(new Date(Date.now()-10*60_000).toISOString());
-    assert.equal(b.notify('request_created','AS-STUCK',{reference:'AS-STUCK'}).status,'delivered');assert.equal(sent,2);
+    assert.equal((await b.notify('request_created','AS-STUCK',{reference:'AS-STUCK'})).status,'delivered');assert.equal(sent,2);
     dbA.close();dbB.close();
+  }finally{fs.rmSync(dir,{recursive:true,force:true})}
+});
+
+test('fencing: a sender whose claim expired cannot overwrite the newer attempt; the expired attempt is counted as uncertain',async()=>{
+  const {DatabaseSync}=require('node:sqlite'),os=require('node:os');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'allo-fence-')),file=path.join(dir,'f.sqlite');
+  try{
+    const {createNotifier}=require('../notifier');
+    const dbA=new DatabaseSync(file),dbB=new DatabaseSync(file);
+    const b=createNotifier(dbB,{transport:'mock',dataDir:dir});let sentB=0;b.setSend(()=>{sentB++;});
+    const a=createNotifier(dbA,{transport:'mock',dataDir:dir,send:async()=>{
+      // A stalls past its lease; B takes the event over and delivers it; then A fails late.
+      dbA.prepare("UPDATE notification_deliveries SET updated_at=? WHERE event_key='request_created:AS-F'").run(new Date(Date.now()-10*60_000).toISOString());
+      assert.equal((await b.notify('request_created','AS-F',{reference:'AS-F'})).status,'delivered');
+      throw new Error('late failure');
+    }});
+    const r=await a.notify('request_created','AS-F',{reference:'AS-F'});
+    assert.equal(r.fenced,true,'A learns it lost the claim');
+    const row=dbA.prepare("SELECT status,attempts,uncertain_attempts FROM notification_deliveries WHERE event_key='request_created:AS-F'").get();
+    assert.equal(row.status,'delivered','the late failure did not overwrite the newer delivery');
+    assert.equal(row.attempts,2);assert.equal(row.uncertain_attempts,1,'the expired attempt is recorded as uncertain (at-least-once, no exactly-once claim)');
+    assert.equal(sentB,1);
+    dbA.close();dbB.close();
+  }finally{fs.rmSync(dir,{recursive:true,force:true})}
+});
+
+test('a send that does not finish within its timeout is recorded as uncertain and not blindly re-sent',async()=>{
+  const {DatabaseSync}=require('node:sqlite'),os=require('node:os');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'allo-timeout-'));
+  try{
+    let calls=0;
+    const n=require('../notifier').createNotifier(new DatabaseSync(':memory:'),{transport:'mock',dataDir:dir,timeoutMs:50,send:()=>{calls++;return new Promise(()=>{});}});
+    const r=await n.notify('request_created','AS-T',{reference:'AS-T'});
+    assert.equal(r.status,'uncertain');assert.equal(calls,1);
+    assert.equal((await n.notify('request_created','AS-T',{reference:'AS-T'})).status,'uncertain');assert.equal(calls,1,'no automatic re-send of an uncertain delivery');
+    const row=n.list()[0];assert.equal(row.status,'uncertain');assert.equal(row.last_error,'Timeout');
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });

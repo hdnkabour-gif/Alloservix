@@ -140,7 +140,7 @@ const server=http.createServer(async(req,res)=>{secureHeaders(res,req);const t0=
     const created=operations.createRequest(body,slug=>{const s=store.getService(slug);return !!s&&s.published&&s.status!=='Indisponible'});
     store.logAudit('request_created',created.tracking_code,'public form');
     // #31: one team alert per request (deduplicated, delivery recorded). A failed alert never fails the request.
-    try{notifier.notify('request_created',created.tracking_code,{reference:created.tracking_code,service:typeof body.service_slug==='string'?body.service_slug.slice(0,100):'',city:typeof body.city==='string'?body.city.slice(0,90):''})}catch{console.error('Team notification could not be recorded')}
+    notifier.notify('request_created',created.tracking_code,{reference:created.tracking_code,service:typeof body.service_slug==='string'?body.service_slug.slice(0,100):'',city:typeof body.city==='string'?body.city.slice(0,90):''}).catch(()=>console.error('Team notification could not be recorded'));
     return response(res,201,created);
   }
   if(p.startsWith('/api/public/requests/')&&method==='GET'){
